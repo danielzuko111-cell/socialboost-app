@@ -60,7 +60,7 @@ let users = initialData.users || [];
 let orders = initialData.orders || [];
 let activeUsersCount = 0;
 
-// Socket.IO Real-time Connection
+// Socket.IO Real-time Connection & Presence Tracking
 io.on('connection', (socket) => {
   const isAdmin = socket.handshake.query.isAdmin === 'true';
 
@@ -171,19 +171,19 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   }
 });
 
-// Customer Order History Endpoint (Handles all user queries)
-app.get(['/api/orders', '/api/orders/user'], (req, res) => {
-  const email = req.query.email ? req.query.email.toLowerCase() : null;
+// Customer Order History Endpoints (Supports both query parameter & route patterns)
+app.get(['/api/orders', '/api/orders/user', '/api/user/orders'], (req, res) => {
+  const email = (req.query.email || req.query.customerEmail || '').toLowerCase();
   
   if (email) {
-    const userOrders = orders.filter(o => o.customerEmail === email);
+    const userOrders = orders.filter(o => o.customerEmail.toLowerCase() === email);
     return res.json(userOrders);
   }
   
   res.json(orders);
 });
 
-// Admin Control Panel Route
+// Admin Control Panel Route (With Automatic Session Retention on Refresh)
 app.get('/admin', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -241,7 +241,7 @@ app.get('/admin', (req, res) => {
 
       <script src="/socket.io/socket.io.js"></script>
       <script>
-        let authHeader = '';
+        let authHeader = sessionStorage.getItem('adminAuth') || '';
         const adminSocket = io({ query: { isAdmin: 'true' } });
 
         adminSocket.on('active_users_update', (data) => {
@@ -251,16 +251,30 @@ app.get('/admin', (req, res) => {
           if (visitElem) visitElem.textContent = data.totalVisits;
         });
 
+        window.addEventListener('DOMContentLoaded', () => {
+          if (authHeader) {
+            fetchOrdersWithAuth();
+          }
+        });
+
         async function loadOrders() {
           const user = document.getElementById('userInput').value;
           const pass = document.getElementById('passInput').value;
           authHeader = 'Basic ' + btoa(user + ':' + pass);
+          sessionStorage.setItem('adminAuth', authHeader);
+          fetchOrdersWithAuth();
+        }
 
+        async function fetchOrdersWithAuth() {
           const res = await fetch('/api/admin/orders', {
             headers: { 'Authorization': authHeader }
           });
 
-          if (res.status === 401) return alert('Invalid Username or Password!');
+          if (res.status === 401) {
+            sessionStorage.removeItem('adminAuth');
+            alert('Invalid Username or Password!');
+            return;
+          }
 
           const data = await res.json();
           document.getElementById('login').style.display = 'none';
@@ -303,7 +317,7 @@ app.get('/admin', (req, res) => {
           const data = await res.json();
           if (data.success) {
             alert('Order approved! Provider ID: ' + data.providerOrderId);
-            loadOrders();
+            fetchOrdersWithAuth();
           } else {
             alert('Error: ' + (data.error || 'Failed to approve'));
           }
@@ -319,7 +333,7 @@ app.get('/admin', (req, res) => {
           const data = await res.json();
           if (data.success) {
             alert('Order declined.');
-            loadOrders();
+            fetchOrdersWithAuth();
           } else {
             alert('Error: ' + (data.error || 'Failed to decline'));
           }
@@ -387,6 +401,5 @@ app.post('/api/admin/decline-order', (req, res) => {
   res.json({ success: true, message: 'Order declined.' });
 });
 
-// Use server.listen instead of app.listen
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-        
+    
