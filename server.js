@@ -34,12 +34,19 @@ const upload = multer({ storage });
 
 let users = [];
 let orders = [];
-let siteVisits = 0;
 
-// Track visits
+// Daily Traffic Tracker (Keyed by YYYY-MM-DD)
+let trafficLog = {}; 
+
+function getTodayKey() {
+  return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
+// Track visits per day
 app.post('/api/track-visit', (req, res) => {
-  siteVisits++;
-  res.json({ success: true, totalVisits: siteVisits });
+  const today = getTodayKey();
+  trafficLog[today] = (trafficLog[today] || 0) + 1;
+  res.json({ success: true, todayVisits: trafficLog[today] });
 });
 
 // Authentication Endpoints
@@ -77,7 +84,6 @@ app.get('/api/services', async (req, res) => {
       const markedUpServices = response.data.map(s => {
         const wholesaleRateUSD = parseFloat(s.rate) || 0;
         const wholesaleRateNGN = wholesaleRateUSD * USD_TO_NGN;
-        // 100% markup on top of provider price (2x)
         let retailRateNGN = Math.ceil(wholesaleRateNGN * 2.0);
 
         if (retailRateNGN < 200) {
@@ -159,12 +165,16 @@ app.get('/admin', (req, res) => {
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0b0f19; color: #fff; padding: 20px; }
         h1 { color: #00e676; text-align: center; }
         .stats-box { background: #161f30; padding: 16px; border-radius: 12px; margin: 20px 0; text-align: center; border: 1px solid #2a3854; }
-        .stats-box h3 { color: #00e676; font-size: 2rem; }
+        .stats-box h3 { color: #00e676; font-size: 2.2rem; margin: 8px 0; }
+        .history-box { background: #161f30; padding: 16px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #2a3854; }
+        .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a3854; color: #cbd5e1; font-size: 0.95rem; }
+        .history-item:last-child { border-bottom: none; }
         .login-box { max-width: 360px; margin: 50px auto; background: #161f30; padding: 24px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
         .login-box h2 { color: #00e676; margin-bottom: 16px; text-align: center; }
         label { font-size: 0.85rem; color: #94a3b8; display: block; margin-top: 10px; }
         input { width: 100%; padding: 12px; margin-top: 6px; background: #0b0f19; border: 1px solid #2a3854; color: #fff; border-radius: 6px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; background: #00e676; border: none; font-weight: bold; cursor: pointer; border-radius: 6px; margin-top: 20px; color: #0b0f19; font-size: 1rem; }
+        .btn-logout { background: #ef4444; color: #fff; width: auto; padding: 8px 16px; margin: 0; font-size: 0.85rem; float: right; }
         .order-card { background: #161f30; padding: 16px; margin-bottom: 16px; border-radius: 10px; border-left: 4px solid #00e676; }
         a { color: #00e676; word-break: break-all; }
         .btn-group { display: flex; gap: 10px; margin-top: 12px; }
@@ -179,16 +189,22 @@ app.get('/admin', (req, res) => {
         <input type="text" id="userInput" placeholder="Enter Username" />
         <label>Password</label>
         <input type="password" id="passInput" placeholder="Enter Password" />
-        <button onclick="loadOrders()">Login</button>
+        <button onclick="loginAdmin()">Login</button>
       </div>
 
       <div id="dashboard" style="display:none; max-width: 600px; margin: 0 auto;">
-        <h1>Admin Control Panel</h1>
+        <button class="btn-logout" onclick="logoutAdmin()">Logout</button>
+        <h1 style="text-align: left;">Admin Panel</h1>
         
         <div class="stats-box">
-          <p style="color: #94a3b8; text-transform: uppercase; font-size: 0.8rem;">Total Website Traffic</p>
-          <h3 id="visitCount">0</h3>
-          <p style="font-size: 0.8rem; color: #64748b;">Total Site Visits</p>
+          <p style="color: #94a3b8; text-transform: uppercase; font-size: 0.8rem; margin: 0;">Today's Visitors</p>
+          <h3 id="todayCount">0</h3>
+          <p style="font-size: 0.8rem; color: #64748b; margin: 0;">Resets automatically every 24 hours</p>
+        </div>
+
+        <div class="history-box">
+          <h3 style="color: #00e676; margin-top: 0; font-size: 1rem;">Daily Traffic Log</h3>
+          <div id="trafficHistory"></div>
         </div>
 
         <h2 style="margin-bottom: 15px; font-size: 1.2rem; color: #cbd5e1;">Pending Orders</h2>
@@ -196,32 +212,69 @@ app.get('/admin', (req, res) => {
       </div>
 
       <script>
-        let authHeader = '';
+        let authHeader = localStorage.getItem('adminAuth') || '';
 
-        async function loadOrders() {
+        // Auto login on refresh if session exists
+        document.addEventListener('DOMContentLoaded', () => {
+          if (authHeader) {
+            loadOrders();
+          }
+        });
+
+        async function loginAdmin() {
           const user = document.getElementById('userInput').value;
           const pass = document.getElementById('passInput').value;
-
           authHeader = 'Basic ' + btoa(user + ':' + pass);
+          localStorage.setItem('adminAuth', authHeader);
+          loadOrders();
+        }
 
+        function logoutAdmin() {
+          localStorage.removeItem('adminAuth');
+          authHeader = '';
+          document.getElementById('dashboard').style.display = 'none';
+          document.getElementById('login').style.display = 'block';
+        }
+
+        async function loadOrders() {
           const res = await fetch('/api/admin/orders', {
             headers: { 'Authorization': authHeader }
           });
 
           if (res.status === 401) {
+            logoutAdmin();
             return alert('Invalid Username or Password!');
           }
 
           const data = await res.json();
           document.getElementById('login').style.display = 'none';
           document.getElementById('dashboard').style.display = 'block';
-          document.getElementById('visitCount').textContent = data.visits;
 
+          // Display today's traffic
+          const todayKey = new Date().toISOString().split('T')[0];
+          document.getElementById('todayCount').textContent = data.traffic[todayKey] || 0;
+
+          // Render daily traffic history list
+          const historyContainer = document.getElementById('trafficHistory');
+          const sortedDates = Object.keys(data.traffic).sort().reverse();
+          
+          if (sortedDates.length === 0) {
+            historyContainer.innerHTML = '<p style="color:#64748b; font-size:0.85rem;">No traffic logged yet.</p>';
+          } else {
+            historyContainer.innerHTML = sortedDates.map(date => \`
+              <div class="history-item">
+                <span>\${date === todayKey ? '<strong>Today (' + date + ')</strong>' : date}</span>
+                <span><strong>\${data.traffic[date]}</strong> visitors</span>
+              </div>
+            \`).join('');
+          }
+
+          // Render pending orders
           const pendingOrders = data.orders.filter(o => o.status === 'Pending Verification');
           const container = document.getElementById('ordersList');
 
           if (pendingOrders.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:30px;">No pending orders.</p>';
+            container.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:20px;">No pending orders.</p>';
             return;
           }
 
@@ -303,7 +356,7 @@ app.use('/api/admin', (req, res, next) => {
 
 app.get('/api/admin/orders', (req, res) => {
   res.json({
-    visits: siteVisits,
+    traffic: trafficLog,
     orders: orders
   });
 });
