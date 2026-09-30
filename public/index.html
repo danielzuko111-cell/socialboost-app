@@ -12,9 +12,9 @@
     header p { color: #94a3b8; font-size: 0.9rem; margin-top: 4px; }
     .card { width: 100%; max-width: 480px; background: #161f30; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 16px; }
     
-    .auth-tabs { display: flex; gap: 10px; margin-bottom: 12px; }
-    .auth-tab { flex: 1; padding: 10px; text-align: center; background: #0b0f19; border: 1px solid #2a3854; border-radius: 8px; cursor: pointer; color: #94a3b8; font-weight: 600; font-size: 0.85rem; }
-    .auth-tab.active { background: #00e676; color: #0b0f19; border-color: #00e676; }
+    .auth-tabs, .verify-tabs { display: flex; gap: 10px; margin-bottom: 12px; }
+    .auth-tab, .verify-tab { flex: 1; padding: 10px; text-align: center; background: #0b0f19; border: 1px solid #2a3854; border-radius: 8px; cursor: pointer; color: #94a3b8; font-weight: 600; font-size: 0.85rem; }
+    .auth-tab.active, .verify-tab.active { background: #00e676; color: #0b0f19; border-color: #00e676; }
     
     .user-banner { background: #0b0f19; padding: 12px; border-radius: 10px; border: 1px solid #2a3854; display: flex; justify-content: space-between; align-items: center; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
@@ -29,6 +29,7 @@
     .bank-box h4 { color: #00e676; font-size: 0.9rem; margin-bottom: 8px; }
     .bank-box p { font-size: 0.85rem; color: #cbd5e1; line-height: 1.4; }
     .btn-action { width: 100%; padding: 14px; background: #00e676; color: #0b0f19; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+    .btn-whatsapp { width: 100%; padding: 14px; background: #25d366; color: #ffffff; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn-logout { background: #ef4444; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
   </style>
 </head>
@@ -122,18 +123,34 @@
         <p>Account Name: <strong>Daniel Olabisi</strong></p>
       </div>
 
+      <!-- Verification Selection -->
       <div class="form-group">
-        <label for="receipt">Upload Payment Receipt</label>
-        <input type="file" id="receipt" accept="image/*" />
+        <label>Payment Verification Option</label>
+        <div class="verify-tabs">
+          <div id="tabUpload" class="verify-tab active" onclick="switchVerifyMode('upload')">Upload Proof</div>
+          <div id="tabWhatsApp" class="verify-tab" onclick="switchVerifyMode('whatsapp')">Message Admin</div>
+        </div>
       </div>
 
-      <button class="btn-action" id="submitBtn">Submit Order & Upload Proof</button>
+      <!-- Mode 1: File Upload -->
+      <div id="uploadSection" class="form-group">
+        <label for="receipt">Upload Payment Receipt</label>
+        <input type="file" id="receipt" accept="image/*" />
+        <button class="btn-action" id="submitBtn">Submit Order & Upload Proof</button>
+      </div>
+
+      <!-- Mode 2: Direct WhatsApp Verification -->
+      <div id="whatsappSection" class="form-group" style="display: none;">
+        <p style="font-size: 0.85rem; color: #94a3b8; text-align: center;">Clicking below submits your order and opens WhatsApp to send your proof of payment directly to the admin.</p>
+        <button class="btn-whatsapp" id="whatsappBtn">💬 Verify Order on WhatsApp</button>
+      </div>
     </div>
   </div>
 
   <script>
     let currentUser = null;
     let allServices = [];
+    let currentVerifyMode = 'upload';
 
     fetch('/api/track-visit', { method: 'POST' });
 
@@ -148,6 +165,21 @@
         document.getElementById('tabLogin').classList.remove('active');
         document.getElementById('registerForm').style.display = 'flex';
         document.getElementById('loginForm').style.display = 'none';
+      }
+    }
+
+    function switchVerifyMode(mode) {
+      currentVerifyMode = mode;
+      if (mode === 'upload') {
+        document.getElementById('tabUpload').classList.add('active');
+        document.getElementById('tabWhatsApp').classList.remove('active');
+        document.getElementById('uploadSection').style.display = 'flex';
+        document.getElementById('whatsappSection').style.display = 'none';
+      } else {
+        document.getElementById('tabWhatsApp').classList.add('active');
+        document.getElementById('tabUpload').classList.remove('active');
+        document.getElementById('whatsappSection').style.display = 'flex';
+        document.getElementById('uploadSection').style.display = 'none';
       }
     }
 
@@ -271,6 +303,7 @@
       }
     }
 
+    // Standard Submit with File Upload
     document.getElementById('submitBtn').addEventListener('click', async () => {
       if (!currentUser) return alert('Please sign in or register first.');
 
@@ -301,6 +334,45 @@
         const data = await res.json();
         if (data.success) {
           alert(`Order Submitted! Order ID: ${data.orderId}`);
+          location.reload();
+        } else {
+          alert(data.error || 'Submission failed');
+        }
+      } catch (err) {
+        alert('Error submitting order.');
+      }
+    });
+
+    // Submit via WhatsApp Verification
+    document.getElementById('whatsappBtn').addEventListener('click', async () => {
+      if (!currentUser) return alert('Please sign in or register first.');
+
+      const serviceId = document.getElementById('service').value;
+      const selectedService = allServices.find(s => s.id == serviceId);
+      const link = document.getElementById('targetLink').value;
+      const qty = document.getElementById('quantity').value;
+
+      if (!link || !qty) {
+        return alert('Please fill in link and quantity.');
+      }
+
+      const totalCost = Math.ceil((parseInt(qty) / 1000) * selectedService.retail_rate_per_1000);
+
+      const formData = new FormData();
+      formData.append('customerName', currentUser.name);
+      formData.append('customerEmail', currentUser.email);
+      formData.append('serviceId', serviceId);
+      formData.append('serviceName', selectedService.name);
+      formData.append('targetLink', link);
+      formData.append('quantity', qty);
+      formData.append('totalCost', totalCost);
+
+      try {
+        const res = await fetch('/api/orders/create', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          const waMessage = `Hello Admin, I just placed an order on SocialBoost NGN!%0A%0A*Order ID:* ${data.orderId}%0A*Customer:* ${currentUser.name}%0A*Service:* ${selectedService.name}%0A*Quantity:* ${qty}%0A*Amount Paid:* ₦${totalCost.toLocaleString()}%0A*Target Link:* ${link}%0A%0AHere is my payment receipt:`;
+          window.open(`https://wa.me/message/5N7KSVCXPTZAE1?text=${waMessage}`, '_blank');
           location.reload();
         } else {
           alert(data.error || 'Submission failed');
