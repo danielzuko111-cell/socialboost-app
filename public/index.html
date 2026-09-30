@@ -3,440 +3,353 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SocialBoost NGN - Social Media Growth</title>
+  <title>SocialBoost - Instant Social Media Growth</title>
   <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --card-bg: #161f30;
+      --accent: #00e676;
+      --accent-hover: #00c853;
+      --text-main: #ffffff;
+      --text-sub: #94a3b8;
+      --border: #2a3854;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #0b0f19; color: #ffffff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 15px; }
-    header { width: 100%; max-width: 480px; text-align: center; margin-bottom: 20px; }
-    header h1 { color: #00e676; font-size: 1.8rem; font-weight: 700; }
-    header p { color: #94a3b8; font-size: 0.9rem; margin-top: 4px; }
-    .card { width: 100%; max-width: 480px; background: #161f30; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
-    
-    .auth-tabs, .verify-tabs { display: flex; gap: 10px; margin-bottom: 12px; }
-    .auth-tab, .verify-tab { flex: 1; padding: 10px; text-align: center; background: #0b0f19; border: 1px solid #2a3854; border-radius: 8px; cursor: pointer; color: #94a3b8; font-weight: 600; font-size: 0.85rem; }
-    .auth-tab.active, .verify-tab.active { background: #00e676; color: #0b0f19; border-color: #00e676; }
-    
-    .user-banner { background: #0b0f19; padding: 12px; border-radius: 10px; border: 1px solid #2a3854; display: flex; justify-content: space-between; align-items: center; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    label { font-size: 0.8rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
-    select, input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="file"] { width: 100%; padding: 12px; background: #0b0f19; border: 1px solid #2a3854; border-radius: 8px; color: #fff; font-size: 0.95rem; outline: none; }
-    select:focus, input:focus { border-color: #00e676; }
-    .meta-info { font-size: 0.8rem; color: #64748b; text-align: right; }
-    .cost-box { background: #0f172a; border: 1px solid #1e293b; padding: 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
-    .cost-box span { font-size: 0.9rem; color: #94a3b8; }
-    .cost-box strong { font-size: 1.5rem; color: #00e676; }
-    .bank-box { background: #092019; border: 1px solid #134e3a; border-radius: 12px; padding: 14px; }
-    .bank-box h4 { color: #00e676; font-size: 0.9rem; margin-bottom: 8px; }
-    .bank-box p { font-size: 0.85rem; color: #cbd5e1; line-height: 1.4; }
-    .btn-action { width: 100%; padding: 14px; background: #00e676; color: #0b0f19; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
-    .btn-whatsapp { width: 100%; padding: 14px; background: #25d366; color: #ffffff; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-logout { background: #ef4444; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
-    
-    .order-item { background: #0b0f19; border: 1px solid #2a3854; padding: 14px; border-radius: 10px; margin-bottom: 10px; font-size: 0.85rem; }
-    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; margin-top: 6px; }
-    .status-pending { background: #f59e0b; color: #000; }
-    .status-approved { background: #10b981; color: #fff; }
-    .status-declined { background: #ef4444; color: #fff; }
+    body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; padding-bottom: 40px; }
+
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; sticky: top; top: 0; z-index: 100; }
+    header h1 { font-size: 1.3rem; color: var(--accent); font-weight: 800; }
+    .user-badge { font-size: 0.85rem; color: var(--text-sub); }
+
+    .container { max-width: 500px; margin: 0 auto; padding: 20px 16px; }
+
+    .card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .card h2 { font-size: 1.1rem; color: var(--accent); margin-bottom: 12px; }
+
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 0.85rem; color: var(--text-sub); margin-bottom: 6px; }
+    input, select { width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 0.95rem; outline: none; }
+    input:focus, select:focus { border-color: var(--accent); }
+
+    .price-box { background: rgba(0, 230, 118, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; text-align: center; margin: 16px 0; }
+    .price-box p { font-size: 0.85rem; color: var(--text-sub); }
+    .price-box h3 { font-size: 1.5rem; color: var(--accent); margin-top: 4px; }
+
+    .btn { width: 100%; padding: 14px; background: var(--accent); color: var(--bg-dark); font-weight: bold; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: 0.2s; }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-secondary { background: transparent; color: var(--text-sub); border: 1px solid var(--border); margin-top: 8px; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab-btn { flex: 1; padding: 10px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-sub); border-radius: 8px; cursor: pointer; font-size: 0.85rem; text-align: center; }
+    .tab-btn.active { background: var(--accent); color: var(--bg-dark); font-weight: bold; border-color: var(--accent); }
+
+    .bank-details { background: #0f172a; padding: 12px; border-radius: 8px; border: 1px dashed var(--border); margin-bottom: 14px; font-size: 0.85rem; color: var(--text-sub); line-height: 1.5; }
+    .bank-details strong { color: var(--text-main); }
   </style>
 </head>
 <body>
 
   <header>
     <h1>SocialBoost NGN</h1>
-    <p>Live rates with instant order processing</p>
+    <div id="userInfo" class="user-badge">Not Logged In</div>
   </header>
 
-  <div class="card">
-    <!-- Auth Section -->
-    <div id="authSection">
-      <div class="auth-tabs">
-        <div id="tabLogin" class="auth-tab active" onclick="switchAuthMode('login')">Login</div>
-        <div id="tabRegister" class="auth-tab" onclick="switchAuthMode('register')">Register</div>
+  <div class="container">
+    
+    <!-- AUTH CARD -->
+    <div id="authCard" class="card">
+      <div class="tabs">
+        <button id="tabLoginBtn" class="tab-btn active" onclick="switchAuthTab('login')">Login</button>
+        <button id="tabRegBtn" class="tab-btn" onclick="switchAuthTab('register')">Register</button>
       </div>
 
-      <!-- Login Form -->
-      <div id="loginForm" class="form-group" style="gap: 12px;">
-        <div>
-          <label>Email Address</label>
-          <input type="email" id="loginEmail" placeholder="yourname@gmail.com" />
+      <div id="loginForm">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="Enter email" />
         </div>
-        <div>
+        <div class="form-group">
           <label>Password</label>
           <input type="password" id="loginPass" placeholder="Enter password" />
         </div>
-        <button class="btn-action" onclick="loginUser()">Login to Place Order</button>
+        <button class="btn" onclick="handleLogin()">Sign In</button>
       </div>
 
-      <!-- Register Form -->
-      <div id="registerForm" class="form-group" style="display: none; gap: 12px;">
-        <div>
+      <div id="regForm" style="display:none;">
+        <div class="form-group">
           <label>Full Name</label>
-          <input type="text" id="regName" placeholder="John Doe" />
+          <input type="text" id="regName" placeholder="Enter full name" />
         </div>
-        <div>
-          <label>Email Address</label>
-          <input type="email" id="regEmail" placeholder="yourname@gmail.com" />
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="Enter email" />
         </div>
-        <div>
+        <div class="form-group">
           <label>Password</label>
           <input type="password" id="regPass" placeholder="Create password" />
         </div>
-        <button class="btn-action" onclick="registerUser()">Create Account</button>
+        <button class="btn" onclick="handleRegister()">Create Account</button>
       </div>
     </div>
 
-    <!-- User Banner -->
-    <div id="userBanner" class="user-banner" style="display: none;">
-      <div>
-        <strong id="userName" style="font-size: 0.95rem; display: block; color: #00e676;"></strong>
-        <span id="userEmail" style="font-size: 0.75rem; color: #94a3b8;"></span>
-      </div>
-      <button class="btn-logout" onclick="logout()">Logout</button>
-    </div>
+    <!-- MAIN APPS CARD -->
+    <div id="appCard" style="display:none;">
+      
+      <!-- ORDER FORM -->
+      <div class="card">
+        <h2>Place Order</h2>
+        
+        <div class="form-group">
+          <label>Category</label>
+          <select id="categorySelect" onchange="filterServices()"></select>
+        </div>
 
-    <!-- Order Form Area -->
-    <div id="orderForm" style="display: none; flex-direction: column; gap: 16px;">
-      <div class="form-group">
-        <label for="category">Category</label>
-        <select id="category"><option>Loading categories...</option></select>
+        <div class="form-group">
+          <label>Service</label>
+          <select id="serviceSelect" onchange="calculatePrice()"></select>
+        </div>
+
+        <div class="form-group">
+          <label>Target Link</label>
+          <input type="url" id="targetLink" placeholder="https://instagram.com/p/..." />
+        </div>
+
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="number" id="quantityInput" placeholder="Min: 100" oninput="calculatePrice()" />
+        </div>
+
+        <div class="price-box">
+          <p>Total Charge</p>
+          <h3 id="totalCostDisplay">₦0</h3>
+        </div>
+
+        <div class="bank-details">
+          <p><strong>Bank Transfer Payment</strong></p>
+          <p>Bank: OPay Bank</p>
+          <p>Account No: <strong>9058382070</strong></p>
+          <p>Account Name: Daniel Olabisi</p>
+        </div>
+
+        <div class="form-group">
+          <label>Upload Payment Receipt (Optional)</label>
+          <input type="file" id="receiptInput" accept="image/*" />
+        </div>
+
+        <button class="btn" onclick="submitOrder()">Submit Order</button>
+        <button class="btn btn-secondary" onclick="handleLogout()">Sign Out</button>
       </div>
 
-      <div class="form-group">
-        <label for="service">Service Type</label>
-        <select id="service"><option>Select category first</option></select>
-      </div>
-
-      <div class="form-group">
-        <label for="targetLink">Target Link / Profile URL</label>
-        <input type="text" id="targetLink" placeholder="e.g. https://instagram.com/yourprofile" />
-      </div>
-
-      <div class="form-group">
-        <label for="quantity">Quantity</label>
-        <input type="number" id="quantity" value="1000" />
-        <div class="meta-info" id="minMaxInfo">Min: -- | Max: --</div>
-      </div>
-
-      <div class="cost-box">
-        <span>Total Cost:</span>
-        <strong id="totalCost">₦0</strong>
-      </div>
-
-      <div class="bank-box">
-        <h4>Bank Transfer Details</h4>
-        <p>Bank: <strong>OPay</strong></p>
-        <p>Account Number: <strong>9058382070</strong></p>
-        <p>Account Name: <strong>Daniel Olabisi</strong></p>
-      </div>
-
-      <!-- Verification Selection -->
-      <div class="form-group">
-        <label>Payment Verification Option</label>
-        <div class="verify-tabs">
-          <div id="tabUpload" class="verify-tab active" onclick="switchVerifyMode('upload')">Upload Proof</div>
-          <div id="tabWhatsApp" class="verify-tab" onclick="switchVerifyMode('whatsapp')">Message Admin</div>
+      <!-- MY ORDERS -->
+      <div class="card">
+        <h2>My Order History</h2>
+        <div id="myOrdersList">
+          <p style="color: var(--text-sub); font-size: 0.85rem;">Loading orders...</p>
         </div>
       </div>
 
-      <!-- Mode 1: File Upload -->
-      <div id="uploadSection" class="form-group">
-        <label for="receipt">Upload Payment Receipt</label>
-        <input type="file" id="receipt" accept="image/*" />
-        <button class="btn-action" id="submitBtn">Submit Order & Upload Proof</button>
-      </div>
-
-      <!-- Mode 2: Direct WhatsApp Verification -->
-      <div id="whatsappSection" class="form-group" style="display: none;">
-        <p style="font-size: 0.85rem; color: #94a3b8; text-align: center;">Clicking below submits your order and opens WhatsApp to send your proof of payment directly to the admin.</p>
-        <button class="btn-whatsapp" id="whatsappBtn">💬 Verify Order on WhatsApp</button>
-      </div>
     </div>
+
   </div>
 
-  <!-- Customer Order History Section -->
-  <div id="historyCard" class="card" style="display: none;">
-    <h3 style="color: #00e676; font-size: 1.1rem; border-bottom: 1px solid #2a3854; padding-bottom: 8px;">My Orders</h3>
-    <div id="myOrdersList">
-      <p style="color: #94a3b8; font-size: 0.85rem;">Loading orders...</p>
-    </div>
-  </div>
-
+  <script src="/socket.io/socket.io.js"></script>
   <script>
-    let currentUser = null;
+    const socket = io();
     let allServices = [];
-    let currentVerifyMode = 'upload';
+    let currentUser = null;
 
-    fetch('/api/track-visit', { method: 'POST' });
+    // Check login state on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('currentUser');
+      if (saved) {
+        try {
+          currentUser = JSON.parse(saved);
+          showApp();
+        } catch(e) {}
+      }
+      loadServices();
+    });
 
-    function switchAuthMode(mode) {
-      if (mode === 'login') {
-        document.getElementById('tabLogin').classList.add('active');
-        document.getElementById('tabRegister').classList.remove('active');
-        document.getElementById('loginForm').style.display = 'flex';
-        document.getElementById('registerForm').style.display = 'none';
+    function switchAuthTab(type) {
+      if (type === 'login') {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('regForm').style.display = 'none';
+        document.getElementById('tabLoginBtn').classList.add('active');
+        document.getElementById('tabRegBtn').classList.remove('active');
       } else {
-        document.getElementById('tabRegister').classList.add('active');
-        document.getElementById('tabLogin').classList.remove('active');
-        document.getElementById('registerForm').style.display = 'flex';
         document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('regForm').style.display = 'block';
+        document.getElementById('tabRegBtn').classList.add('active');
+        document.getElementById('tabLoginBtn').classList.remove('active');
       }
     }
 
-    function switchVerifyMode(mode) {
-      currentVerifyMode = mode;
-      if (mode === 'upload') {
-        document.getElementById('tabUpload').classList.add('active');
-        document.getElementById('tabWhatsApp').classList.remove('active');
-        document.getElementById('uploadSection').style.display = 'flex';
-        document.getElementById('whatsappSection').style.display = 'none';
-      } else {
-        document.getElementById('tabWhatsApp').classList.add('active');
-        document.getElementById('tabUpload').classList.remove('active');
-        document.getElementById('whatsappSection').style.display = 'flex';
-        document.getElementById('uploadSection').style.display = 'none';
-      }
-    }
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPass').value.trim();
 
-    async function registerUser() {
-      const name = document.getElementById('regName').value;
-      const email = document.getElementById('regEmail').value;
-      const password = document.getElementById('regPass').value;
-
-      if (!name || !email || !password) return alert('Please fill in all fields.');
-
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        currentUser = data.user;
-        localStorage.setItem('socialboost_user', JSON.stringify(currentUser));
-        updateUserUI();
-      } else {
-        alert(data.error || 'Registration failed.');
-      }
-    }
-
-    async function loginUser() {
-      const email = document.getElementById('loginEmail').value;
-      const password = document.getElementById('loginPass').value;
-
-      if (!email || !password) return alert('Please enter email and password.');
+      if (!email || !password) return alert('Enter email and password!');
 
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ email, password })
       });
-      const data = await res.json();
 
+      const data = await res.json();
       if (data.success) {
         currentUser = data.user;
-        localStorage.setItem('socialboost_user', JSON.stringify(currentUser));
-        updateUserUI();
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showApp();
       } else {
-        alert(data.error || 'Invalid credentials.');
+        alert(data.error || 'Login failed');
       }
     }
 
-    function updateUserUI() {
-      const saved = localStorage.getItem('socialboost_user');
-      if (saved) currentUser = JSON.parse(saved);
+    async function handleRegister() {
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPass').value.trim();
 
-      if (currentUser) {
-        document.getElementById('authSection').style.display = 'none';
-        document.getElementById('userBanner').style.display = 'flex';
-        document.getElementById('orderForm').style.display = 'flex';
-        document.getElementById('historyCard').style.display = 'flex';
-        document.getElementById('userName').textContent = currentUser.name;
-        document.getElementById('userEmail').textContent = currentUser.email;
-        loadMyOrders();
+      if (!name || !email || !password) return alert('Fill all fields!');
+
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name, email, password })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        currentUser = data.user;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showApp();
       } else {
-        document.getElementById('authSection').style.display = 'block';
-        document.getElementById('userBanner').style.display = 'none';
-        document.getElementById('orderForm').style.display = 'none';
-        document.getElementById('historyCard').style.display = 'none';
+        alert(data.error || 'Registration failed');
       }
     }
 
-    async function loadMyOrders() {
-      if (!currentUser) return;
-      try {
-        const res = await fetch(`/api/user/orders?email=${encodeURIComponent(currentUser.email)}`);
-        const userOrders = await res.json();
-        const container = document.getElementById('myOrdersList');
-
-        if (!userOrders || userOrders.length === 0) {
-          container.innerHTML = '<p style="color: #94a3b8; font-size: 0.85rem;">No orders placed yet.</p>';
-          return;
-        }
-
-        container.innerHTML = userOrders.map(o => {
-          let badgeClass = 'status-pending';
-          if (o.status.includes('Approved')) badgeClass = 'status-approved';
-          if (o.status.includes('Declined')) badgeClass = 'status-declined';
-
-          return `
-            <div class="order-item">
-              <div><strong>Order ID:</strong> ${o.orderId}</div>
-              <div style="color: #94a3b8; margin-top:2px;">${o.serviceName}</div>
-              <div style="margin-top:2px;"><strong>Qty:</strong> ${o.quantity} | ₦${o.totalCostNGN}</div>
-              <div class="status-badge ${badgeClass}">${o.status}</div>
-            </div>
-          `;
-        }).join('');
-      } catch (err) {
-        document.getElementById('myOrdersList').innerHTML = '<p style="color: #ef4444; font-size: 0.85rem;">Failed to load order history.</p>';
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem('socialboost_user');
+    function handleLogout() {
+      localStorage.removeItem('currentUser');
       currentUser = null;
-      updateUserUI();
+      document.getElementById('authCard').style.display = 'block';
+      document.getElementById('appCard').style.display = 'none';
+      document.getElementById('userInfo').textContent = 'Not Logged In';
+    }
+
+    function showApp() {
+      document.getElementById('authCard').style.display = 'none';
+      document.getElementById('appCard').style.display = 'block';
+      document.getElementById('userInfo').textContent = `👤 ${currentUser.name}`;
+      loadUserOrders();
     }
 
     async function loadServices() {
       try {
         const res = await fetch('/api/services');
         allServices = await res.json();
+
         const categories = [...new Set(allServices.map(s => s.category))];
-        const categorySelect = document.getElementById('category');
-        categorySelect.innerHTML = '';
+        const catSelect = document.getElementById('categorySelect');
+        catSelect.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
 
-        categories.forEach(cat => {
-          const opt = document.createElement('option');
-          opt.value = cat;
-          opt.textContent = cat;
-          categorySelect.appendChild(opt);
-        });
-
-        categorySelect.addEventListener('change', updateServiceDropdown);
-        updateServiceDropdown();
-      } catch (err) {
-        alert('Failed to load services.');
+        filterServices();
+      } catch (e) {
+        console.error('Error fetching services:', e);
       }
     }
 
-    function updateServiceDropdown() {
-      const selectedCat = document.getElementById('category').value;
-      const serviceSelect = document.getElementById('service');
-      serviceSelect.innerHTML = '';
+    function filterServices() {
+      const category = document.getElementById('categorySelect').value;
+      const filtered = allServices.filter(s => s.category === category);
 
-      const filtered = allServices.filter(s => s.category === selectedCat);
-      filtered.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = `${s.name} - ₦${s.retail_rate_per_1000.toLocaleString()} / 1k`;
-        serviceSelect.appendChild(opt);
+      const servSelect = document.getElementById('serviceSelect');
+      servSelect.innerHTML = filtered.map(s => `<option value="${s.id}">${s.name} - ₦${s.retail_rate_per_1000}/1000</option>`).join('');
+
+      calculatePrice();
+    }
+
+    function calculatePrice() {
+      const serviceId = document.getElementById('serviceSelect').value;
+      const quantity = parseInt(document.getElementById('quantityInput').value) || 0;
+      const service = allServices.find(s => s.id == serviceId);
+
+      if (!service || quantity <= 0) {
+        document.getElementById('totalCostDisplay').textContent = '₦0';
+        return;
+      }
+
+      const cost = Math.ceil((quantity / 1000) * service.retail_rate_per_1000);
+      document.getElementById('totalCostDisplay').textContent = `₦${cost}`;
+    }
+
+    async function submitOrder() {
+      if (!currentUser) return alert('Please log in first!');
+
+      const serviceId = document.getElementById('serviceSelect').value;
+      const targetLink = document.getElementById('targetLink').value.trim();
+      const quantity = document.getElementById('quantityInput').value;
+      const receiptFile = document.getElementById('receiptInput').files[0];
+
+      if (!serviceId || !targetLink || !quantity) return alert('Please fill in all order fields!');
+
+      const service = allServices.find(s => s.id == serviceId);
+      const totalCost = Math.ceil((quantity / 1000) * service.retail_rate_per_1000);
+
+      const formData = new FormData();
+      formData.append('customerName', currentUser.name);
+      formData.append('customerEmail', currentUser.email);
+      formData.append('serviceId', serviceId);
+      formData.append('serviceName', service.name);
+      formData.append('targetLink', targetLink);
+      formData.append('quantity', quantity);
+      formData.append('totalCost', totalCost);
+      if (receiptFile) formData.append('receipt', receiptFile);
+
+      const res = await fetch('/api/orders/create', {
+        method: 'POST',
+        body: formData
       });
 
-      serviceSelect.addEventListener('change', calculateTotal);
-      document.getElementById('quantity').addEventListener('input', calculateTotal);
-      calculateTotal();
-    }
-
-    function calculateTotal() {
-      const serviceId = document.getElementById('service').value;
-      const qty = parseInt(document.getElementById('quantity').value) || 0;
-      const selectedService = allServices.find(s => s.id == serviceId);
-
-      if (selectedService) {
-        document.getElementById('minMaxInfo').textContent = `Min: ${selectedService.min} | Max: ${selectedService.max}`;
-        const total = Math.ceil((qty / 1000) * selectedService.retail_rate_per_1000);
-        document.getElementById('totalCost').textContent = `₦${total.toLocaleString()}`;
+      const data = await res.json();
+      if (data.success) {
+        alert('Order submitted successfully!');
+        document.getElementById('targetLink').value = '';
+        document.getElementById('quantityInput').value = '';
+        document.getElementById('receiptInput').value = '';
+        calculatePrice();
+        loadUserOrders();
+      } else {
+        alert(data.error || 'Failed to submit order');
       }
     }
 
-    // Standard Submit with File Upload
-    document.getElementById('submitBtn').addEventListener('click', async () => {
-      if (!currentUser) return alert('Please sign in or register first.');
+    async function loadUserOrders() {
+      if (!currentUser || !currentUser.email) return;
 
-      const serviceId = document.getElementById('service').value;
-      const selectedService = allServices.find(s => s.id == serviceId);
-      const link = document.getElementById('targetLink').value;
-      const qty = document.getElementById('quantity').value;
-      const fileInput = document.getElementById('receipt');
-
-      if (!link || !qty || !fileInput.files[0]) {
-        return alert('Please fill in link, quantity, and attach payment receipt.');
-      }
-
-      const totalCost = Math.ceil((parseInt(qty) / 1000) * selectedService.retail_rate_per_1000);
-
-      const formData = new FormData();
-      formData.append('customerName', currentUser.name);
-      formData.append('customerEmail', currentUser.email);
-      formData.append('serviceId', serviceId);
-      formData.append('serviceName', selectedService.name);
-      formData.append('targetLink', link);
-      formData.append('quantity', qty);
-      formData.append('totalCost', totalCost);
-      formData.append('receipt', fileInput.files[0]);
-
+      const ordersContainer = document.getElementById('myOrdersList');
       try {
-        const res = await fetch('/api/orders/create', { method: 'POST', body: formData });
+        const res = await fetch(`/api/orders/user?email=${encodeURIComponent(currentUser.email)}`);
         const data = await res.json();
-        if (data.success) {
-          alert(`Order Submitted! Order ID: ${data.orderId}`);
-          updateUserUI();
-        } else {
-          alert(data.error || 'Submission failed');
+
+        if (!Array.isArray(data) || data.length === 0) {
+          ordersContainer.innerHTML = '<p style="color: var(--text-sub); font-size: 0.85rem;">No orders placed yet.</p>';
+          return;
         }
+
+        ordersContainer.innerHTML = data.map(o => `
+          <div style="background: var(--bg-dark); padding: 12px; margin-top: 10px; border-radius: 8px; border-left: 3px solid var(--accent);">
+            <p style="margin:2px 0;"><strong>ID:</strong> ${o.orderId} <span style="float:right; font-size:0.8rem; color:var(--accent);">${o.status}</span></p>
+            <p style="margin:2px 0;"><strong>Service:</strong> ${o.serviceName}</p>
+            <p style="margin:2px 0;"><strong>Amount:</strong> ₦${o.totalCostNGN} | <strong>Qty:</strong> ${o.quantity}</p>
+            <p style="margin:2px 0; font-size:0.8rem; color:var(--text-sub);">🕒 ${o.createdAt}</p>
+          </div>
+        `).join('');
       } catch (err) {
-        alert('Error submitting order.');
+        ordersContainer.innerHTML = '<p style="color: #ef4444; font-size: 0.85rem;">Unable to load order history.</p>';
       }
-    });
-
-    // Submit via WhatsApp Verification
-    document.getElementById('whatsappBtn').addEventListener('click', async () => {
-      if (!currentUser) return alert('Please sign in or register first.');
-
-      const serviceId = document.getElementById('service').value;
-      const selectedService = allServices.find(s => s.id == serviceId);
-      const link = document.getElementById('targetLink').value;
-      const qty = document.getElementById('quantity').value;
-
-      if (!link || !qty) {
-        return alert('Please fill in link and quantity.');
-      }
-
-      const totalCost = Math.ceil((parseInt(qty) / 1000) * selectedService.retail_rate_per_1000);
-
-      const formData = new FormData();
-      formData.append('customerName', currentUser.name);
-      formData.append('customerEmail', currentUser.email);
-      formData.append('serviceId', serviceId);
-      formData.append('serviceName', selectedService.name);
-      formData.append('targetLink', link);
-      formData.append('quantity', qty);
-      formData.append('totalCost', totalCost);
-
-      try {
-        const res = await fetch('/api/orders/create', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-          const waMessage = `Hello Admin, I just placed an order on SocialBoost NGN!%0A%0A*Order ID:* ${data.orderId}%0A*Customer:* ${currentUser.name}%0A*Service:* ${selectedService.name}%0A*Quantity:* ${qty}%0A*Amount Paid:* ₦${totalCost.toLocaleString()}%0A*Target Link:* ${link}%0A%0AHere is my payment receipt:`;
-          window.open(`https://wa.me/message/5N7KSVCXPTZAE1?text=${waMessage}`, '_blank');
-          updateUserUI();
-        } else {
-          alert(data.error || 'Submission failed');
-        }
-      } catch (err) {
-        alert('Error submitting order.');
-      }
-    });
-
-    updateUserUI();
-    loadServices();
+    }
   </script>
-  <script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
-</script>
-  
 </body>
 </html>
