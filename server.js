@@ -33,7 +33,7 @@ if (!fs.existsSync('./uploads')) {
   fs.mkdirSync('./uploads');
 }
 
-// Data Persistence (File Storage to prevent reset on restarts)
+// Data Persistence (File Storage)
 function loadData() {
   if (fs.existsSync(DATA_FILE)) {
     try {
@@ -60,7 +60,7 @@ let users = initialData.users || [];
 let orders = initialData.orders || [];
 let activeUsersCount = 0;
 
-// Socket.IO Real-time Connection & Presence Tracking
+// Socket.IO Real-time Connection
 io.on('connection', (socket) => {
   const isAdmin = socket.handshake.query.isAdmin === 'true';
 
@@ -151,7 +151,7 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
     const newOrder = {
       orderId: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
       customerName: customerName || 'Guest User',
-      customerEmail: customerEmail || 'N/A',
+      customerEmail: (customerEmail || 'guest').toLowerCase(),
       serviceId,
       serviceName,
       targetLink,
@@ -169,6 +169,18 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Server error creating order.' });
   }
+});
+
+// Customer Order History Endpoint (Handles all user queries)
+app.get(['/api/orders', '/api/orders/user'], (req, res) => {
+  const email = req.query.email ? req.query.email.toLowerCase() : null;
+  
+  if (email) {
+    const userOrders = orders.filter(o => o.customerEmail === email);
+    return res.json(userOrders);
+  }
+  
+  res.json(orders);
 });
 
 // Admin Control Panel Route
@@ -377,4 +389,4 @@ app.post('/api/admin/decline-order', (req, res) => {
 
 // Use server.listen instead of app.listen
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    
+        
