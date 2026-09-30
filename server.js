@@ -29,6 +29,9 @@ const upload = multer({ storage });
 let orders = [];
 
 // Dynamically fetch live services directly from MySocialsBoost API
+// Set your preferred USD to NGN exchange rate here
+const USD_TO_NGN = 1650; 
+
 app.get('/api/services', async (req, res) => {
   try {
     const params = new URLSearchParams({
@@ -40,14 +43,20 @@ app.get('/api/services', async (req, res) => {
     
     if (Array.isArray(response.data)) {
       const markedUpServices = response.data.map(s => {
-        const wholesaleRate = parseFloat(s.rate);
-        const retailRate = Math.round(wholesaleRate * 1.5); // +50% Markup
+        const wholesaleRateUSD = parseFloat(s.rate);
+        
+        // 1. Convert USD rate to NGN
+        const wholesaleRateNGN = wholesaleRateUSD * USD_TO_NGN;
+        
+        // 2. Add 50% Markup (Multiply by 1.5)
+        const retailRateNGN = Math.round(wholesaleRateNGN * 1.5);
+
         return {
           id: s.service,
           name: s.name,
           category: s.category,
-          rate_per_1000: wholesaleRate,
-          retail_rate_per_1000: retailRate,
+          rate_per_1000: wholesaleRateNGN,
+          retail_rate_per_1000: retailRateNGN,
           min: s.min,
           max: s.max
         };
@@ -60,6 +69,7 @@ app.get('/api/services', async (req, res) => {
     res.status(500).json({ error: 'Error connecting to provider API.' });
   }
 });
+
 
 // Customer Route: Submit Order & Payment Receipt
 app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
