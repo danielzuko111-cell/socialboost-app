@@ -1,226 +1,271 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Social Boost NGN</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SocialBoost NGN - Social Media Growth</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: #0b0f19;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 15px;
+    }
+    header {
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    header h1 {
+      color: #00e676;
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+    header p {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: #161f30;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    select, input[type="text"], input[type="number"], input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      background: #0b0f19;
+      border: 1px solid #2a3854;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    select:focus, input:focus {
+      border-color: #00e676;
+    }
+    .meta-info {
+      font-size: 0.8rem;
+      color: #64748b;
+      text-align: right;
+    }
+    .cost-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      padding: 16px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cost-box span {
+      font-size: 0.9rem;
+      color: #94a3b8;
+    }
+    .cost-box strong {
+      font-size: 1.5rem;
+      color: #00e676;
+    }
+    .bank-box {
+      background: #092019;
+      border: 1px solid #134e3a;
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .bank-box h4 {
+      color: #00e676;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+    .bank-box p {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: #00e676;
+      color: #0b0f19;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover {
+      background: #00c853;
+    }
+  </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen font-sans">
+<body>
 
-  <nav class="border-b border-slate-800 bg-slate-950 p-4">
-    <div class="max-w-5xl mx-auto flex justify-between items-center">
-      <h1 class="text-xl font-extrabold text-emerald-400 tracking-wide">SocialBoost NGN</h1>
-      <button onclick="toggleView()" id="viewToggleBtn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-md border border-slate-700 transition">
+  <header>
+    <h1>SocialBoost NGN</h1>
+    <p>Live rates with instant order processing</p>
+  </header>
 
-        
-      <form id="orderForm" onsubmit="handleOrderSubmit(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Category</label>
-          <select id="categorySelect" onchange="filterServices()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500"></select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Service Type</label>
-          <select id="serviceSelect" onchange="calculatePrice()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500"></select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Target Link / Profile URL</label>
-          <input type="text" id="targetLink" required placeholder="e.g. https://instagram.com/yourprofile" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Quantity</label>
-          <input type="number" id="quantity" value="1000" min="100" oninput="calculatePrice()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500">
-          <p id="minMaxHint" class="text-xs text-slate-400 mt-1"></p>
-        </div>
-
-        <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 flex justify-between items-center">
-          <span class="text-slate-400 text-sm">Total Cost:</span>
-          <span id="totalPrice" class="text-2xl font-black text-emerald-400">₦0</span>
-        </div>
-
-        <div class="bg-emerald-950/40 border border-emerald-800/60 p-4 rounded-lg space-y-1 text-sm">
-          <p class="font-bold text-emerald-400">Bank Transfer Details</p>
-          <p class="text-slate-300"><span class="text-slate-400">Bank:</span> OPay</p>
-          <p class="text-slate-300"><span class="text-slate-400">Account Number:</span> <strong class="text-white select-all">9058382070</strong></p>
-          <p class="text-slate-300"><span class="text-slate-400">Account Name:</span> Daniel Olabisi</p>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Upload Payment Receipt</label>
-          <input type="file" id="receipt" accept="image/*" required class="w-full text-slate-400 bg-slate-900 border border-slate-700 rounded-lg p-2.5">
-        </div>
-
-        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold py-3.5 rounded-lg transition text-base">
-          Submit Order & Upload Proof
-        </button>
-      </form>
-    </div>
-  </main>
-
-  <main id="adminView" class="max-w-5xl mx-auto p-4 my-6 hidden space-y-4">
-    <div class="flex justify-between items-center">
-      <h2 class="text-2xl font-bold text-emerald-400">Admin Approval Panel</h2>
-      <button onclick="loadAdminOrders()" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded text-xs">Refresh Orders</button>
+  <div class="card">
+    <div class="form-group">
+      <label for="category">Category</label>
+      <select id="category"><option>Loading categories...</option></select>
     </div>
 
-    <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-x-auto">
-      <table class="w-full text-left border-collapse text-sm">
-        <thead class="bg-slate-950 text-slate-400 border-b border-slate-700">
-          <tr>
-            <th class="p-3">Order ID</th>
-            <th class="p-3">Service</th>
-            <th class="p-3">Link / Qty</th>
-            <th class="p-3">Total</th>
-            <th class="p-3">Receipt</th>
-            <th class="p-3">Status</th>
-            <th class="p-3">Action</th>
-          </tr>
-        </thead>
-        <tbody id="adminOrdersTable" class="divide-y divide-slate-700"></tbody>
-      </table>
+    <div class="form-group">
+      <label for="service">Service Type</label>
+      <select id="service"><option>Select category first</option></select>
     </div>
-  </main>
+
+    <div class="form-group">
+      <label for="targetLink">Target Link / Profile URL</label>
+      <input type="text" id="targetLink" placeholder="e.g. https://instagram.com/yourprofile" />
+    </div>
+
+    <div class="form-group">
+      <label for="quantity">Quantity</label>
+      <input type="number" id="quantity" value="1000" />
+      <div class="meta-info" id="minMaxInfo">Min: -- | Max: --</div>
+    </div>
+
+    <div class="cost-box">
+      <span>Total Cost:</span>
+      <strong id="totalCost">₦0</strong>
+    </div>
+
+    <div class="bank-box">
+      <h4>Bank Transfer Details</h4>
+      <p>Bank: <strong>OPay</strong></p>
+      <p>Account Number: <strong>9058382070</strong></p>
+      <p>Account Name: <strong>Daniel Olabisi</strong></p>
+    </div>
+
+    <div class="form-group">
+      <label for="receipt">Upload Payment Receipt</label>
+      <input type="file" id="receipt" accept="image/*" />
+    </div>
+
+    <button class="btn-submit" id="submitBtn">Submit Order & Upload Proof</button>
+  </div>
 
   <script>
     let allServices = [];
-    let currentCalculatedTotal = 0;
 
     async function loadServices() {
-      const res = await fetch('/api/services');
-      allServices = await res.json();
-      
-      const categories = [...new Set(allServices.map(s => s.category))];
-      const catSelect = document.getElementById('categorySelect');
-      catSelect.innerHTML = '';
+      try {
+        const res = await fetch('/api/services');
+        allServices = await res.json();
 
-      categories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.innerText = cat;
-        catSelect.appendChild(opt);
-      });
+        const categories = [...new Set(allServices.map(s => s.category))];
+        const categorySelect = document.getElementById('category');
+        categorySelect.innerHTML = '';
 
-      filterServices();
+        categories.forEach(cat => {
+          const opt = document.createElement('option');
+          opt.value = cat;
+          opt.textContent = cat;
+          categorySelect.appendChild(opt);
+        });
+
+        categorySelect.addEventListener('change', updateServiceDropdown);
+        updateServiceDropdown();
+      } catch (err) {
+        alert('Failed to load services.');
+      }
     }
 
-    function filterServices() {
-      const selectedCat = document.getElementById('categorySelect').value;
-      const filtered = allServices.filter(s => s.category === selectedCat);
-      const serviceSelect = document.getElementById('serviceSelect');
+    function updateServiceDropdown() {
+      const selectedCat = document.getElementById('category').value;
+      const serviceSelect = document.getElementById('service');
       serviceSelect.innerHTML = '';
 
+      const filtered = allServices.filter(s => s.category === selectedCat);
       filtered.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.id;
-        opt.innerText = `${s.name} - ₦${s.retail_rate_per_1000.toLocaleString()} / 1k`;
+        opt.textContent = `${s.name} - ₦${s.retail_rate_per_1000.toLocaleString()} / 1k`;
         serviceSelect.appendChild(opt);
       });
 
-      calculatePrice();
+      serviceSelect.addEventListener('change', calculateTotal);
+      document.getElementById('quantity').addEventListener('input', calculateTotal);
+      calculateTotal();
     }
 
-    function calculatePrice() {
-      const serviceId = document.getElementById('serviceSelect').value;
-      const quantity = parseInt(document.getElementById('quantity').value) || 0;
-      const service = allServices.find(s => s.id == serviceId);
+    function calculateTotal() {
+      const serviceId = document.getElementById('service').value;
+      const qty = parseInt(document.getElementById('quantity').value) || 0;
+      const selectedService = allServices.find(s => s.id == serviceId);
 
-      if (service) {
-        document.getElementById('minMaxHint').innerText = `Min: ${service.min} | Max: ${service.max}`;
-        currentCalculatedTotal = Math.round((service.retail_rate_per_1000 * quantity) / 1000);
-        document.getElementById('totalPrice').innerText = `₦${currentCalculatedTotal.toLocaleString()}`;
+      if (selectedService) {
+        document.getElementById('minMaxInfo').textContent = `Min: ${selectedService.min} | Max: ${selectedService.max}`;
+        const total = Math.ceil((qty / 1000) * selectedService.retail_rate_per_1000);
+        document.getElementById('totalCost').textContent = `₦${total.toLocaleString()}`;
       }
     }
 
-    async function handleOrderSubmit(e) {
-      e.preventDefault();
-      const serviceId = document.getElementById('serviceSelect').value;
-      const service = allServices.find(s => s.id == serviceId);
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      const serviceId = document.getElementById('service').value;
+      const selectedService = allServices.find(s => s.id == serviceId);
+      const link = document.getElementById('targetLink').value;
+      const qty = document.getElementById('quantity').value;
+      const fileInput = document.getElementById('receipt');
+
+      if (!link || !qty || !fileInput.files[0]) {
+        return alert('Please fill in link, quantity, and attach payment receipt.');
+      }
+
+      const totalCost = Math.ceil((parseInt(qty) / 1000) * selectedService.retail_rate_per_1000);
 
       const formData = new FormData();
       formData.append('serviceId', serviceId);
-      formData.append('serviceName', service.name);
-      formData.append('targetLink', document.getElementById('targetLink').value);
-      formData.append('quantity', document.getElementById('quantity').value);
-      formData.append('totalCost', currentCalculatedTotal);
-      formData.append('receipt', document.getElementById('receipt').files[0]);
+      formData.append('serviceName', selectedService.name);
+      formData.append('targetLink', link);
+      formData.append('quantity', qty);
+      formData.append('totalCost', totalCost);
+      formData.append('receipt', fileInput.files[0]);
 
-      const res = await fetch('/api/orders/create', { method: 'POST', body: formData });
-      const data = await res.json();
-      
-      if (data.success) {
-        alert('Order submitted successfully!');
-        document.getElementById('orderForm').reset();
-        filterServices();
-      } else {
-        alert('Error: ' + data.error);
+      try {
+        const res = await fetch('/api/orders/create', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Order Submitted! Order ID: ${data.orderId}`);
+          location.reload();
+        } else {
+          alert(data.error || 'Submission failed');
+        }
+      } catch (err) {
+        alert('Error submitting order.');
       }
-    }
-
-    function toggleView() {
-      const userView = document.getElementById('userView');
-      const adminView = document.getElementById('adminView');
-      const btn = document.getElementById('viewToggleBtn');
-
-      if (adminView.classList.contains('hidden')) {
-        adminView.classList.remove('hidden');
-        userView.classList.add('hidden');
-        btn.innerText = 'Switch to User View';
-        loadAdminOrders();
-      } else {
-        adminView.classList.add('hidden');
-        userView.classList.remove('hidden');
-        btn.innerText = 'Switch to Admin Panel';
-      }
-    }
-
-    async function loadAdminOrders() {
-      const res = await fetch('/api/admin/orders');
-      const orders = await res.json();
-      const tbody = document.getElementById('adminOrdersTable');
-      tbody.innerHTML = '';
-
-      if (orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">No orders placed yet.</td></tr>';
-        return;
-      }
-
-      orders.forEach(o => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="p-3 text-xs font-mono text-slate-400">${o.orderId}</td>
-          <td class="p-3">${o.serviceName}</td>
-          <td class="p-3"><a href="${o.targetLink}" target="_blank" class="text-emerald-400 underline">${o.targetLink.substring(0, 20)}...</a> (${o.quantity})</td>
-          <td class="p-3 font-bold">₦${o.totalCostNGN.toLocaleString()}</td>
-          <td class="p-3"><a href="${o.receiptUrl}" target="_blank" class="text-emerald-300 underline">View Receipt</a></td>
-          <td class="p-3"><span class="px-2 py-1 text-xs rounded ${o.status.includes('Approved') ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'}">${o.status}</span></td>
-          <td class="p-3">
-            ${o.status === 'Pending Verification' ? `<button onclick="approveOrder('${o.orderId}')" class="bg-emerald-500 text-slate-950 px-2 py-1 rounded font-bold text-xs">Approve</button>` : '<span class="text-slate-500 text-xs">Done</span>'}
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function approveOrder(orderId) {
-      if(!confirm('Confirmed OPay payment receipt?')) return;
-
-      const res = await fetch('/api/admin/approve-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        alert('Approved and forwarded to MySocialsBoost API!');
-        loadAdminOrders();
-      } else {
-        alert('API Error: ' + data.error);
-      }
-    }
+    });
 
     loadServices();
   </script>
