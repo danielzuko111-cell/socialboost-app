@@ -11,11 +11,10 @@ const PORT = process.env.PORT || 3000;
 const PROVIDER_API_URL = 'https://mysocialsboost.com/api/v2';
 const PROVIDER_API_KEY = process.env.PROVIDER_API_KEY || '15c176d4487684b0e64e588704e88d93';
 
-// Admin Authentication Credentials
+// Admin Credentials
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'danielzuko';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'daniel2004#';
 
-// Exchange rate: 1 USD = 1,650 NGN
 const USD_TO_NGN = 1650; 
 
 app.use(cors());
@@ -33,16 +32,38 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+let users = [];
 let orders = [];
-let siteVisits = 0; // Traffic counter
+let siteVisits = 0;
 
-// Track site traffic
+// Track visits
 app.post('/api/track-visit', (req, res) => {
   siteVisits++;
   res.json({ success: true, totalVisits: siteVisits });
 });
 
-// Fetch live services
+// Authentication Endpoints
+app.post('/api/auth/register', (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) return res.status(400).json({ error: 'All fields are required.' });
+
+  const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (existing) return res.status(400).json({ error: 'Email already registered.' });
+
+  const newUser = { id: Date.now(), name, email, password };
+  users.push(newUser);
+  res.json({ success: true, user: { name: newUser.name, email: newUser.email } });
+});
+
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body;
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+
+  if (!user) return res.status(401).json({ error: 'Invalid email or password.' });
+  res.json({ success: true, user: { name: user.name, email: user.email } });
+});
+
+// Services Endpoint
 app.get('/api/services', async (req, res) => {
   try {
     const params = new URLSearchParams({
@@ -75,20 +96,19 @@ app.get('/api/services', async (req, res) => {
       return res.json(markedUpServices);
     }
 
-    res.status(500).json({ error: 'Failed to retrieve services from provider.' });
+    res.status(500).json({ error: 'Failed to retrieve services.' });
   } catch (error) {
     res.status(500).json({ error: 'Error connecting to provider API.' });
   }
 });
 
-// Customer Route: Submit Order with User Details & Timestamp
+// Order Creation Endpoint
 app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   try {
     const { customerName, customerEmail, serviceId, serviceName, targetLink, quantity, totalCost } = req.body;
 
     if (!req.file) return res.status(400).json({ error: 'Payment receipt photo is required' });
 
-    // Format current timestamp in West Africa Time / Local time
     const formattedTime = new Date().toLocaleString('en-US', {
       timeZone: 'Africa/Lagos',
       dateStyle: 'medium',
@@ -116,7 +136,7 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   }
 });
 
-// Admin Dashboard UI
+// Admin Panel Dashboard
 app.get('/admin', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -285,4 +305,3 @@ app.post('/api/admin/approve-order', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-      
