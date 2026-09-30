@@ -8,7 +8,6 @@
 </head>
 <body class="bg-slate-900 text-white min-h-screen font-sans">
 
-  <!-- Header / Navigation -->
   <nav class="border-b border-slate-800 bg-slate-950 p-4">
     <div class="max-w-5xl mx-auto flex justify-between items-center">
       <h1 class="text-xl font-extrabold text-emerald-400 tracking-wide">SocialBoost NGN</h1>
@@ -18,23 +17,19 @@
     </div>
   </nav>
 
-  <!-- CUSTOMER ORDER VIEW -->
   <main id="userView" class="max-w-2xl mx-auto p-4 my-6">
     <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-2xl space-y-6">
       <div>
         <h2 class="text-2xl font-bold">Boost Your Social Media</h2>
-        <p class="text-slate-400 text-sm">Fast delivery & instant order tracking in Naira</p>
-      </div>
-
-      <!-- Platform Selection -->
-      <div class="grid grid-cols-4 gap-2">
-        <button onclick="filterPlatform('facebook')" id="btn-facebook" class="platform-btn bg-emerald-600 font-semibold py-2 rounded-lg text-xs md:text-sm">Facebook</button>
-        <button onclick="filterPlatform('tiktok')" id="btn-tiktok" class="platform-btn bg-slate-700 hover:bg-slate-600 font-semibold py-2 rounded-lg text-xs md:text-sm">TikTok</button>
-        <button onclick="filterPlatform('instagram')" id="btn-instagram" class="platform-btn bg-slate-700 hover:bg-slate-600 font-semibold py-2 rounded-lg text-xs md:text-sm">Instagram</button>
-        <button onclick="filterPlatform('youtube')" id="btn-youtube" class="platform-btn bg-slate-700 hover:bg-slate-600 font-semibold py-2 rounded-lg text-xs md:text-sm">YouTube</button>
+        <p class="text-slate-400 text-sm">Live rates with instant order processing</p>
       </div>
 
       <form id="orderForm" onsubmit="handleOrderSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Category</label>
+          <select id="categorySelect" onchange="filterServices()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500"></select>
+        </div>
+
         <div>
           <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Service Type</label>
           <select id="serviceSelect" onchange="calculatePrice()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500"></select>
@@ -42,21 +37,20 @@
 
         <div>
           <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Target Link / Profile URL</label>
-          <input type="text" id="targetLink" required placeholder="e.g. https://facebook.com/yourpage" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500">
+          <input type="text" id="targetLink" required placeholder="e.g. https://instagram.com/yourprofile" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500">
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Quantity</label>
           <input type="number" id="quantity" value="1000" min="100" oninput="calculatePrice()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-emerald-500">
+          <p id="minMaxHint" class="text-xs text-slate-400 mt-1"></p>
         </div>
 
-        <!-- Calculated Price Box -->
         <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 flex justify-between items-center">
           <span class="text-slate-400 text-sm">Total Cost:</span>
           <span id="totalPrice" class="text-2xl font-black text-emerald-400">₦0</span>
         </div>
 
-        <!-- OPay Bank Payment Box -->
         <div class="bg-emerald-950/40 border border-emerald-800/60 p-4 rounded-lg space-y-1 text-sm">
           <p class="font-bold text-emerald-400">Bank Transfer Details</p>
           <p class="text-slate-300"><span class="text-slate-400">Bank:</span> OPay</p>
@@ -76,7 +70,6 @@
     </div>
   </main>
 
-  <!-- ADMIN VIEW -->
   <main id="adminView" class="max-w-5xl mx-auto p-4 my-6 hidden space-y-4">
     <div class="flex justify-between items-center">
       <h2 class="text-2xl font-bold text-emerald-400">Admin Approval Panel</h2>
@@ -90,7 +83,7 @@
             <th class="p-3">Order ID</th>
             <th class="p-3">Service</th>
             <th class="p-3">Link / Qty</th>
-            <th class="p-3">Total (NGN)</th>
+            <th class="p-3">Total</th>
             <th class="p-3">Receipt</th>
             <th class="p-3">Status</th>
             <th class="p-3">Action</th>
@@ -103,58 +96,74 @@
 
   <script>
     let allServices = [];
-    let activePlatform = 'facebook';
+    let currentCalculatedTotal = 0;
 
     async function loadServices() {
       const res = await fetch('/api/services');
       allServices = await res.json();
-      filterPlatform('facebook');
+      
+      const categories = [...new Set(allServices.map(s => s.category))];
+      const catSelect = document.getElementById('categorySelect');
+      catSelect.innerHTML = '';
+
+      categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.innerText = cat;
+        catSelect.appendChild(opt);
+      });
+
+      filterServices();
     }
 
-    function filterPlatform(platform) {
-      activePlatform = platform;
-      document.querySelectorAll('.platform-btn').forEach(btn => btn.className = 'platform-btn bg-slate-700 hover:bg-slate-600 font-semibold py-2 rounded-lg text-xs md:text-sm');
-      document.getElementById(`btn-${platform}`).className = 'platform-btn bg-emerald-600 font-semibold py-2 rounded-lg text-xs md:text-sm';
+    function filterServices() {
+      const selectedCat = document.getElementById('categorySelect').value;
+      const filtered = allServices.filter(s => s.category === selectedCat);
+      const serviceSelect = document.getElementById('serviceSelect');
+      serviceSelect.innerHTML = '';
 
-      const select = document.getElementById('serviceSelect');
-      select.innerHTML = '';
-      
-      const filtered = allServices.filter(s => s.platform === platform);
       filtered.forEach(s => {
-        const option = document.createElement('option');
-        option.value = s.id;
-        option.innerText = `${s.name} - ₦${s.retail_rate_per_1000.toLocaleString()} / 1k`;
-        select.appendChild(option);
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.innerText = `${s.name} - ₦${s.retail_rate_per_1000.toLocaleString()} / 1k`;
+        serviceSelect.appendChild(opt);
       });
+
       calculatePrice();
     }
 
     function calculatePrice() {
       const serviceId = document.getElementById('serviceSelect').value;
       const quantity = parseInt(document.getElementById('quantity').value) || 0;
-      const service = allServices.find(s => s.id === parseInt(serviceId));
+      const service = allServices.find(s => s.id == serviceId);
 
-      if (service && quantity > 0) {
-        const total = Math.round((service.retail_rate_per_1000 * quantity) / 1000);
-        document.getElementById('totalPrice').innerText = `₦${total.toLocaleString()}`;
+      if (service) {
+        document.getElementById('minMaxHint').innerText = `Min: ${service.min} | Max: ${service.max}`;
+        currentCalculatedTotal = Math.round((service.retail_rate_per_1000 * quantity) / 1000);
+        document.getElementById('totalPrice').innerText = `₦${currentCalculatedTotal.toLocaleString()}`;
       }
     }
 
     async function handleOrderSubmit(e) {
       e.preventDefault();
+      const serviceId = document.getElementById('serviceSelect').value;
+      const service = allServices.find(s => s.id == serviceId);
+
       const formData = new FormData();
-      formData.append('serviceId', document.getElementById('serviceSelect').value);
+      formData.append('serviceId', serviceId);
+      formData.append('serviceName', service.name);
       formData.append('targetLink', document.getElementById('targetLink').value);
       formData.append('quantity', document.getElementById('quantity').value);
+      formData.append('totalCost', currentCalculatedTotal);
       formData.append('receipt', document.getElementById('receipt').files[0]);
 
       const res = await fetch('/api/orders/create', { method: 'POST', body: formData });
       const data = await res.json();
       
       if (data.success) {
-        alert('Order submitted successfully! Your payment is now pending verification.');
+        alert('Order submitted successfully!');
         document.getElementById('orderForm').reset();
-        calculatePrice();
+        filterServices();
       } else {
         alert('Error: ' + data.error);
       }
@@ -190,16 +199,15 @@
 
       orders.forEach(o => {
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-750';
         tr.innerHTML = `
-          <td class="p-3 font-mono text-xs text-slate-400">${o.orderId}</td>
+          <td class="p-3 text-xs font-mono text-slate-400">${o.orderId}</td>
           <td class="p-3">${o.serviceName}</td>
-          <td class="p-3"><a href="${o.targetLink}" target="_blank" class="text-emerald-400 underline">${o.targetLink.substring(0, 22)}...</a> (${o.quantity})</td>
-          <td class="p-3 font-bold text-white">₦${o.totalCostNGN.toLocaleString()}</td>
-          <td class="p-3"><a href="${o.receiptUrl}" target="_blank" class="bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-xs text-emerald-300 underline">View Image</a></td>
-          <td class="p-3"><span class="px-2 py-1 rounded text-xs ${o.status.includes('Approved') ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700' : 'bg-amber-900/60 text-amber-300 border border-amber-700'}">${o.status}</span></td>
+          <td class="p-3"><a href="${o.targetLink}" target="_blank" class="text-emerald-400 underline">${o.targetLink.substring(0, 20)}...</a> (${o.quantity})</td>
+          <td class="p-3 font-bold">₦${o.totalCostNGN.toLocaleString()}</td>
+          <td class="p-3"><a href="${o.receiptUrl}" target="_blank" class="text-emerald-300 underline">View Receipt</a></td>
+          <td class="p-3"><span class="px-2 py-1 text-xs rounded ${o.status.includes('Approved') ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'}">${o.status}</span></td>
           <td class="p-3">
-            ${o.status === 'Pending Verification' ? `<button onclick="approveOrder('${o.orderId}')" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded text-xs">Approve & Send API</button>` : '<span class="text-slate-500 text-xs">Completed</span>'}
+            ${o.status === 'Pending Verification' ? `<button onclick="approveOrder('${o.orderId}')" class="bg-emerald-500 text-slate-950 px-2 py-1 rounded font-bold text-xs">Approve</button>` : '<span class="text-slate-500 text-xs">Done</span>'}
           </td>
         `;
         tbody.appendChild(tr);
@@ -207,7 +215,7 @@
     }
 
     async function approveOrder(orderId) {
-      if(!confirm('Have you confirmed receipt of transfer in your OPay app?')) return;
+      if(!confirm('Confirmed OPay payment receipt?')) return;
 
       const res = await fetch('/api/admin/approve-order', {
         method: 'POST',
@@ -217,7 +225,7 @@
       const data = await res.json();
 
       if (data.success) {
-        alert('Order approved! Automatically forwarded to MySocialsBoost API.');
+        alert('Approved and forwarded to MySocialsBoost API!');
         loadAdminOrders();
       } else {
         alert('API Error: ' + data.error);
@@ -227,5 +235,4 @@
     loadServices();
   </script>
 </body>
-  </html>
-  
+</html>
