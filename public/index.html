@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SocialBoost NGN - Social Media Growth</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #0b0f19; color: #ffffff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 15px; }
@@ -12,12 +11,15 @@
     header h1 { color: #00e676; font-size: 1.8rem; font-weight: 700; }
     header p { color: #94a3b8; font-size: 0.9rem; margin-top: 4px; }
     .card { width: 100%; max-width: 480px; background: #161f30; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 16px; }
+    
+    .auth-tabs { display: flex; gap: 10px; margin-bottom: 12px; }
+    .auth-tab { flex: 1; padding: 10px; text-align: center; background: #0b0f19; border: 1px solid #2a3854; border-radius: 8px; cursor: pointer; color: #94a3b8; font-weight: 600; font-size: 0.85rem; }
+    .auth-tab.active { background: #00e676; color: #0b0f19; border-color: #00e676; }
+    
     .user-banner { background: #0b0f19; padding: 12px; border-radius: 10px; border: 1px solid #2a3854; display: flex; justify-content: space-between; align-items: center; }
-    .user-info { display: flex; align-items: center; gap: 10px; }
-    .user-info img { width: 32px; height: 32px; border-radius: 50%; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     label { font-size: 0.8rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
-    select, input[type="text"], input[type="number"], input[type="file"] { width: 100%; padding: 12px; background: #0b0f19; border: 1px solid #2a3854; border-radius: 8px; color: #fff; font-size: 0.95rem; outline: none; }
+    select, input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="file"] { width: 100%; padding: 12px; background: #0b0f19; border: 1px solid #2a3854; border-radius: 8px; color: #fff; font-size: 0.95rem; outline: none; }
     select:focus, input:focus { border-color: #00e676; }
     .meta-info { font-size: 0.8rem; color: #64748b; text-align: right; }
     .cost-box { background: #0f172a; border: 1px solid #1e293b; padding: 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
@@ -26,7 +28,7 @@
     .bank-box { background: #092019; border: 1px solid #134e3a; border-radius: 12px; padding: 14px; }
     .bank-box h4 { color: #00e676; font-size: 0.9rem; margin-bottom: 8px; }
     .bank-box p { font-size: 0.85rem; color: #cbd5e1; line-height: 1.4; }
-    .btn-submit { width: 100%; padding: 14px; background: #00e676; color: #0b0f19; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; }
+    .btn-action { width: 100%; padding: 14px; background: #00e676; color: #0b0f19; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
     .btn-logout { background: #ef4444; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
   </style>
 </head>
@@ -39,28 +41,53 @@
 
   <div class="card">
     <!-- Auth Section -->
-    <div id="authSection" style="text-align: center;">
-      <p style="color: #94a3b8; margin-bottom: 12px; font-size: 0.9rem;">Sign in with Google to place an order</p>
-      <div id="g_id_onload"
-           data-client_id="834729184712-sample.apps.googleusercontent.com"
-           data-callback="handleCredentialResponse">
+    <div id="authSection">
+      <div class="auth-tabs">
+        <div id="tabLogin" class="auth-tab active" onclick="switchAuthMode('login')">Login</div>
+        <div id="tabRegister" class="auth-tab" onclick="switchAuthMode('register')">Register</div>
       </div>
-      <div class="g_id_signin" data-type="standard" data-size="large" data-theme="dark" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
+
+      <!-- Login Form -->
+      <div id="loginForm" class="form-group" style="gap: 12px;">
+        <div>
+          <label>Email Address</label>
+          <input type="email" id="loginEmail" placeholder="yourname@gmail.com" />
+        </div>
+        <div>
+          <label>Password</label>
+          <input type="password" id="loginPass" placeholder="Enter password" />
+        </div>
+        <button class="btn-action" onclick="loginUser()">Login to Place Order</button>
+      </div>
+
+      <!-- Register Form -->
+      <div id="registerForm" class="form-group" style="display: none; gap: 12px;">
+        <div>
+          <label>Full Name</label>
+          <input type="text" id="regName" placeholder="John Doe" />
+        </div>
+        <div>
+          <label>Email Address</label>
+          <input type="email" id="regEmail" placeholder="yourname@gmail.com" />
+        </div>
+        <div>
+          <label>Password</label>
+          <input type="password" id="regPass" placeholder="Create password" />
+        </div>
+        <button class="btn-action" onclick="registerUser()">Create Account</button>
+      </div>
     </div>
 
-    <!-- User Logged In Banner -->
+    <!-- User Banner -->
     <div id="userBanner" class="user-banner" style="display: none;">
-      <div class="user-info">
-        <img id="userPic" src="" alt="Avatar" />
-        <div>
-          <strong id="userName" style="font-size: 0.9rem; display: block;"></strong>
-          <span id="userEmail" style="font-size: 0.75rem; color: #94a3b8;"></span>
-        </div>
+      <div>
+        <strong id="userName" style="font-size: 0.95rem; display: block; color: #00e676;"></strong>
+        <span id="userEmail" style="font-size: 0.75rem; color: #94a3b8;"></span>
       </div>
       <button class="btn-logout" onclick="logout()">Logout</button>
     </div>
 
-    <!-- Main Form Area -->
+    <!-- Order Form Area -->
     <div id="orderForm" style="display: none; flex-direction: column; gap: 16px;">
       <div class="form-group">
         <label for="category">Category</label>
@@ -100,7 +127,7 @@
         <input type="file" id="receipt" accept="image/*" />
       </div>
 
-      <button class="btn-submit" id="submitBtn">Submit Order & Upload Proof</button>
+      <button class="btn-action" id="submitBtn">Submit Order & Upload Proof</button>
     </div>
   </div>
 
@@ -108,24 +135,65 @@
     let currentUser = null;
     let allServices = [];
 
-    // Track Visit
     fetch('/api/track-visit', { method: 'POST' });
 
-    function parseJwt(token) {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      return JSON.parse(window.atob(base64));
+    function switchAuthMode(mode) {
+      if (mode === 'login') {
+        document.getElementById('tabLogin').classList.add('active');
+        document.getElementById('tabRegister').classList.remove('active');
+        document.getElementById('loginForm').style.display = 'flex';
+        document.getElementById('registerForm').style.display = 'none';
+      } else {
+        document.getElementById('tabRegister').classList.add('active');
+        document.getElementById('tabLogin').classList.remove('active');
+        document.getElementById('registerForm').style.display = 'flex';
+        document.getElementById('loginForm').style.display = 'none';
+      }
     }
 
-    function handleCredentialResponse(response) {
-      const userData = parseJwt(response.credential);
-      currentUser = {
-        name: userData.name,
-        email: userData.email,
-        picture: userData.picture
-      };
-      localStorage.setItem('socialboost_user', JSON.stringify(currentUser));
-      updateUserUI();
+    async function registerUser() {
+      const name = document.getElementById('regName').value;
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPass').value;
+
+      if (!name || !email || !password) return alert('Please fill in all fields.');
+
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        currentUser = data.user;
+        localStorage.setItem('socialboost_user', JSON.stringify(currentUser));
+        updateUserUI();
+      } else {
+        alert(data.error || 'Registration failed.');
+      }
+    }
+
+    async function loginUser() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPass').value;
+
+      if (!email || !password) return alert('Please enter email and password.');
+
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        currentUser = data.user;
+        localStorage.setItem('socialboost_user', JSON.stringify(currentUser));
+        updateUserUI();
+      } else {
+        alert(data.error || 'Invalid credentials.');
+      }
     }
 
     function updateUserUI() {
@@ -138,7 +206,6 @@
         document.getElementById('orderForm').style.display = 'flex';
         document.getElementById('userName').textContent = currentUser.name;
         document.getElementById('userEmail').textContent = currentUser.email;
-        document.getElementById('userPic').src = currentUser.picture;
       } else {
         document.getElementById('authSection').style.display = 'block';
         document.getElementById('userBanner').style.display = 'none';
@@ -205,7 +272,7 @@
     }
 
     document.getElementById('submitBtn').addEventListener('click', async () => {
-      if (!currentUser) return alert('Please sign in with Google first.');
+      if (!currentUser) return alert('Please sign in or register first.');
 
       const serviceId = document.getElementById('service').value;
       const selectedService = allServices.find(s => s.id == serviceId);
