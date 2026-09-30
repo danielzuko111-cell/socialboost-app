@@ -63,7 +63,7 @@ app.post('/api/auth/login', (req, res) => {
   res.json({ success: true, user: { name: user.name, email: user.email } });
 });
 
-// Services Endpoint
+// Services Endpoint (With 100% markup added)
 app.get('/api/services', async (req, res) => {
   try {
     const params = new URLSearchParams({
@@ -77,7 +77,8 @@ app.get('/api/services', async (req, res) => {
       const markedUpServices = response.data.map(s => {
         const wholesaleRateUSD = parseFloat(s.rate) || 0;
         const wholesaleRateNGN = wholesaleRateUSD * USD_TO_NGN;
-        let retailRateNGN = Math.ceil(wholesaleRateNGN * 1.5);
+        // 100% markup on top of provider price (2x)
+        let retailRateNGN = Math.ceil(wholesaleRateNGN * 2.0);
 
         if (retailRateNGN < 200) {
           retailRateNGN = 200;
@@ -102,7 +103,7 @@ app.get('/api/services', async (req, res) => {
   }
 });
 
-// Order Creation Endpoint (Handles file upload or WhatsApp verification)
+// Order Creation Endpoint
 app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   try {
     const { customerName, customerEmail, serviceId, serviceName, targetLink, quantity, totalCost } = req.body;
@@ -137,6 +138,15 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   }
 });
 
+// Get User Specific Orders
+app.get('/api/user/orders', (req, res) => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ error: 'Email required' });
+
+  const userOrders = orders.filter(o => o.customerEmail.toLowerCase() === email.toLowerCase());
+  res.json(userOrders);
+});
+
 // Admin Panel Dashboard
 app.get('/admin', (req, res) => {
   res.send(`
@@ -157,7 +167,9 @@ app.get('/admin', (req, res) => {
         button { width: 100%; padding: 12px; background: #00e676; border: none; font-weight: bold; cursor: pointer; border-radius: 6px; margin-top: 20px; color: #0b0f19; font-size: 1rem; }
         .order-card { background: #161f30; padding: 16px; margin-bottom: 16px; border-radius: 10px; border-left: 4px solid #00e676; }
         a { color: #00e676; word-break: break-all; }
-        .btn-approve { background: #00e676; color: #0b0f19; padding: 10px 18px; width: auto; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; margin-top: 12px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 12px; }
+        .btn-approve { background: #00e676; color: #0b0f19; padding: 10px 18px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; }
+        .btn-decline { background: #ef4444; color: #ffffff; padding: 10px 18px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; }
       </style>
     </head>
     <body>
@@ -179,7 +191,7 @@ app.get('/admin', (req, res) => {
           <p style="font-size: 0.8rem; color: #64748b;">Total Site Visits</p>
         </div>
 
-        <h2 style="margin-bottom: 15px; font-size: 1.2rem; color: #cbd5e1;">Customer Orders</h2>
+        <h2 style="margin-bottom: 15px; font-size: 1.2rem; color: #cbd5e1;">Pending Orders</h2>
         <div id="ordersList"></div>
       </div>
 
@@ -205,13 +217,15 @@ app.get('/admin', (req, res) => {
           document.getElementById('dashboard').style.display = 'block';
           document.getElementById('visitCount').textContent = data.visits;
 
+          const pendingOrders = data.orders.filter(o => o.status === 'Pending Verification');
           const container = document.getElementById('ordersList');
-          if (data.orders.length === 0) {
+
+          if (pendingOrders.length === 0) {
             container.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:30px;">No pending orders.</p>';
             return;
           }
 
-          container.innerHTML = data.orders.map(o => \`
+          container.innerHTML = pendingOrders.map(o => \`
             <div class="order-card">
               <p><strong>Order ID:</strong> \${o.orderId}</p>
               <p><strong>Customer:</strong> \${o.customerName} (\${o.customerEmail})</p>
@@ -221,9 +235,11 @@ app.get('/admin', (req, res) => {
               <p><strong>Link:</strong> <a href="\${o.targetLink}" target="_blank">\${o.targetLink}</a></p>
               <p><strong>Quantity:</strong> \${o.quantity}</p>
               <p><strong>Amount Paid:</strong> ₦\${o.totalCostNGN}</p>
-              <p><strong>Status:</strong> \${o.status}</p>
               <p><strong>Receipt:</strong> \${o.receiptUrl ? \`<a href="\${o.receiptUrl}" target="_blank">View Receipt Photo</a>\` : 'Sent via WhatsApp'}</p>
-              \${o.status === 'Pending Verification' ? \`<button class="btn-approve" onclick="approveOrder('\${o.orderId}')">Approve & Send to Provider</button>\` : ''}
+              <div class="btn-group">
+                <button class="btn-approve" onclick="approveOrder('\${o.orderId}')">Approve & Send to Provider</button>
+                <button class="btn-decline" onclick="declineOrder('\${o.orderId}')">Decline Order</button>
+              </div>
             </div>
           \`).join('');
         }
@@ -244,6 +260,25 @@ app.get('/admin', (req, res) => {
             loadOrders();
           } else {
             alert('Error: ' + (data.error || 'Failed to approve'));
+          }
+        }
+
+        async function declineOrder(orderId) {
+          if (!confirm('Decline order ' + orderId + '? It will be removed from dashboard.')) return;
+          const res = await fetch('/api/admin/decline-order', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': authHeader
+            },
+            body: JSON.stringify({ orderId })
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert('Order declined.');
+            loadOrders();
+          } else {
+            alert('Error: ' + (data.error || 'Failed to decline'));
           }
         }
       </script>
@@ -304,6 +339,16 @@ app.post('/api/admin/approve-order', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to communicate with provider.' });
   }
+});
+
+app.post('/api/admin/decline-order', (req, res) => {
+  const { orderId } = req.body;
+  const order = orders.find(o => o.orderId === orderId);
+
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+
+  order.status = 'Declined';
+  res.json({ success: true, message: 'Order declined successfully.' });
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
