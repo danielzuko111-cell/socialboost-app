@@ -11,8 +11,8 @@ const PORT = process.env.PORT || 3000;
 const PROVIDER_API_URL = 'https://mysocialsboost.com/api/v2';
 const PROVIDER_API_KEY = process.env.PROVIDER_API_KEY || '15c176d4487684b0e64e588704e88d93';
 
-// Set your preferred exchange rate (1 USD = 1650 NGN)
-const USD_TO_NGN = 1650;
+// Exchange rate: 1 USD = 1,650 NGN
+const USD_TO_NGN = 1650; 
 
 app.use(cors());
 app.use(express.json());
@@ -31,7 +31,7 @@ const upload = multer({ storage });
 
 let orders = [];
 
-// Fetch live services from MySocialsBoost API, convert USD to NGN, and apply 50% markup
+// Fetch live services, convert USD rate to NGN, apply 50% markup, enforce minimum pricing
 app.get('/api/services', async (req, res) => {
   try {
     const params = new URLSearchParams({
@@ -43,13 +43,18 @@ app.get('/api/services', async (req, res) => {
     
     if (Array.isArray(response.data)) {
       const markedUpServices = response.data.map(s => {
-        const wholesaleRateUSD = parseFloat(s.rate); // Provider rate in USD
+        const wholesaleRateUSD = parseFloat(s.rate) || 0; // e.g. 0.2673 USD
         
-        // 1. Convert USD to NGN
+        // Convert USD wholesale rate to NGN (e.g. 0.2673 * 1650 = ₦441 NGN)
         const wholesaleRateNGN = wholesaleRateUSD * USD_TO_NGN;
         
-        // 2. Add 50% Markup (Multiply by 1.5)
-        const retailRateNGN = Math.ceil(wholesaleRateNGN * 1.5);
+        // Apply 50% profit markup (₦441 * 1.5 = ₦661 NGN)
+        let retailRateNGN = Math.ceil(wholesaleRateNGN * 1.5);
+
+        // Price Floor: Ensure no 1k service ever sells for less than ₦200 NGN
+        if (retailRateNGN < 200) {
+          retailRateNGN = 200;
+        }
 
         return {
           id: s.service,
@@ -57,8 +62,8 @@ app.get('/api/services', async (req, res) => {
           category: s.category,
           rate_per_1000: wholesaleRateNGN,
           retail_rate_per_1000: retailRateNGN,
-          min: s.min,
-          max: s.max
+          min: parseInt(s.min) || 100,
+          max: parseInt(s.max) || 10000
         };
       });
       return res.json(markedUpServices);
@@ -133,4 +138,3 @@ app.post('/api/admin/approve-order', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-                                                 
