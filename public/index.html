@@ -10,7 +10,7 @@
     header { width: 100%; max-width: 480px; text-align: center; margin-bottom: 20px; }
     header h1 { color: #00e676; font-size: 1.8rem; font-weight: 700; }
     header p { color: #94a3b8; font-size: 0.9rem; margin-top: 4px; }
-    .card { width: 100%; max-width: 480px; background: #161f30; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 16px; }
+    .card { width: 100%; max-width: 480px; background: #161f30; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
     
     .auth-tabs, .verify-tabs { display: flex; gap: 10px; margin-bottom: 12px; }
     .auth-tab, .verify-tab { flex: 1; padding: 10px; text-align: center; background: #0b0f19; border: 1px solid #2a3854; border-radius: 8px; cursor: pointer; color: #94a3b8; font-weight: 600; font-size: 0.85rem; }
@@ -31,6 +31,12 @@
     .btn-action { width: 100%; padding: 14px; background: #00e676; color: #0b0f19; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; }
     .btn-whatsapp { width: 100%; padding: 14px; background: #25d366; color: #ffffff; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn-logout { background: #ef4444; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+    
+    .order-item { background: #0b0f19; border: 1px solid #2a3854; padding: 14px; border-radius: 10px; margin-bottom: 10px; font-size: 0.85rem; }
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; margin-top: 6px; }
+    .status-pending { background: #f59e0b; color: #000; }
+    .status-approved { background: #10b981; color: #fff; }
+    .status-declined { background: #ef4444; color: #fff; }
   </style>
 </head>
 <body>
@@ -147,6 +153,14 @@
     </div>
   </div>
 
+  <!-- Customer Order History Section -->
+  <div id="historyCard" class="card" style="display: none;">
+    <h3 style="color: #00e676; font-size: 1.1rem; border-bottom: 1px solid #2a3854; padding-bottom: 8px;">My Orders</h3>
+    <div id="myOrdersList">
+      <p style="color: #94a3b8; font-size: 0.85rem;">Loading orders...</p>
+    </div>
+  </div>
+
   <script>
     let currentUser = null;
     let allServices = [];
@@ -236,12 +250,46 @@
         document.getElementById('authSection').style.display = 'none';
         document.getElementById('userBanner').style.display = 'flex';
         document.getElementById('orderForm').style.display = 'flex';
+        document.getElementById('historyCard').style.display = 'flex';
         document.getElementById('userName').textContent = currentUser.name;
         document.getElementById('userEmail').textContent = currentUser.email;
+        loadMyOrders();
       } else {
         document.getElementById('authSection').style.display = 'block';
         document.getElementById('userBanner').style.display = 'none';
         document.getElementById('orderForm').style.display = 'none';
+        document.getElementById('historyCard').style.display = 'none';
+      }
+    }
+
+    async function loadMyOrders() {
+      if (!currentUser) return;
+      try {
+        const res = await fetch(`/api/user/orders?email=${encodeURIComponent(currentUser.email)}`);
+        const userOrders = await res.json();
+        const container = document.getElementById('myOrdersList');
+
+        if (!userOrders || userOrders.length === 0) {
+          container.innerHTML = '<p style="color: #94a3b8; font-size: 0.85rem;">No orders placed yet.</p>';
+          return;
+        }
+
+        container.innerHTML = userOrders.map(o => {
+          let badgeClass = 'status-pending';
+          if (o.status.includes('Approved')) badgeClass = 'status-approved';
+          if (o.status.includes('Declined')) badgeClass = 'status-declined';
+
+          return `
+            <div class="order-item">
+              <div><strong>Order ID:</strong> ${o.orderId}</div>
+              <div style="color: #94a3b8; margin-top:2px;">${o.serviceName}</div>
+              <div style="margin-top:2px;"><strong>Qty:</strong> ${o.quantity} | ₦${o.totalCostNGN}</div>
+              <div class="status-badge ${badgeClass}">${o.status}</div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        document.getElementById('myOrdersList').innerHTML = '<p style="color: #ef4444; font-size: 0.85rem;">Failed to load order history.</p>';
       }
     }
 
@@ -334,7 +382,7 @@
         const data = await res.json();
         if (data.success) {
           alert(`Order Submitted! Order ID: ${data.orderId}`);
-          location.reload();
+          updateUserUI();
         } else {
           alert(data.error || 'Submission failed');
         }
@@ -373,7 +421,7 @@
         if (data.success) {
           const waMessage = `Hello Admin, I just placed an order on SocialBoost NGN!%0A%0A*Order ID:* ${data.orderId}%0A*Customer:* ${currentUser.name}%0A*Service:* ${selectedService.name}%0A*Quantity:* ${qty}%0A*Amount Paid:* ₦${totalCost.toLocaleString()}%0A*Target Link:* ${link}%0A%0AHere is my payment receipt:`;
           window.open(`https://wa.me/message/5N7KSVCXPTZAE1?text=${waMessage}`, '_blank');
-          location.reload();
+          updateUserUI();
         } else {
           alert(data.error || 'Submission failed');
         }
