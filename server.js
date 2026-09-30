@@ -11,6 +11,9 @@ const PORT = process.env.PORT || 3000;
 const PROVIDER_API_URL = 'https://mysocialsboost.com/api/v2';
 const PROVIDER_API_KEY = process.env.PROVIDER_API_KEY || '15c176d4487684b0e64e588704e88d93';
 
+// Set your Admin Passcode here
+const ADMIN_PIN = process.env.ADMIN_PIN || '123456';
+
 // Exchange rate: 1 USD = 1,650 NGN
 const USD_TO_NGN = 1650; 
 
@@ -31,7 +34,7 @@ const upload = multer({ storage });
 
 let orders = [];
 
-// Fetch live services, convert USD rate to NGN, apply 50% markup, enforce minimum pricing
+// Fetch live services
 app.get('/api/services', async (req, res) => {
   try {
     const params = new URLSearchParams({
@@ -43,15 +46,10 @@ app.get('/api/services', async (req, res) => {
     
     if (Array.isArray(response.data)) {
       const markedUpServices = response.data.map(s => {
-        const wholesaleRateUSD = parseFloat(s.rate) || 0; // e.g. 0.2673 USD
-        
-        // Convert USD wholesale rate to NGN (e.g. 0.2673 * 1650 = ₦441 NGN)
+        const wholesaleRateUSD = parseFloat(s.rate) || 0;
         const wholesaleRateNGN = wholesaleRateUSD * USD_TO_NGN;
-        
-        // Apply 50% profit markup (₦441 * 1.5 = ₦661 NGN)
         let retailRateNGN = Math.ceil(wholesaleRateNGN * 1.5);
 
-        // Price Floor: Ensure no 1k service ever sells for less than ₦200 NGN
         if (retailRateNGN < 200) {
           retailRateNGN = 200;
         }
@@ -101,7 +99,15 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   }
 });
 
-// Admin Routes
+// Protected Admin Routes (Requires PIN in query or header)
+app.use('/api/admin', (req, res, next) => {
+  const providedPin = req.headers['x-admin-pin'] || req.query.pin;
+  if (providedPin !== ADMIN_PIN) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid Admin PIN' });
+  }
+  next();
+});
+
 app.get('/api/admin/orders', (req, res) => res.json(orders));
 
 app.post('/api/admin/approve-order', async (req, res) => {
