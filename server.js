@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -6,6 +8,9 @@ const axios = require('axios');
 const cors = require('cors');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
 const PORT = process.env.PORT || 3000;
 
 const PROVIDER_API_URL = 'https://mysocialsboost.com/api/v2';
@@ -16,7 +21,9 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'danielzuko';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'daniel2004#';
 
 const USD_TO_NGN = 1650; 
+const DATA_FILE = path.join(__dirname, 'data.json');
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
@@ -26,28 +33,59 @@ if (!fs.existsSync('./uploads')) {
   fs.mkdirSync('./uploads');
 }
 
+// Data Persistence (File Storage to prevent reset on restarts)
+function loadData() {
+  if (fs.existsSync(DATA_FILE)) {
+    try {
+      const raw = fs.readFileSync(DATA_FILE, 'utf8');
+      return JSON.parse(raw);
+    } catch (e) {
+      console.error('Error reading persistence file:', e);
+    }
+  }
+  return { siteVisits: 0, users: [], orders: [] };
+}
+
+function saveData() {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify({ siteVisits, users, orders }, null, 2));
+  } catch (e) {
+    console.error('Error saving persistence file:', e);
+  }
+}
+
+const initialData = loadData();
+let siteVisits = initialData.siteVisits || 0;
+let users = initialData.users || [];
+let orders = initialData.orders || [];
+let activeUsersCount = 0;
+
+// Socket.IO Real-time Connection & Presence Tracking
+io.on('connection', (socket) => {
+  const isAdmin = socket.handshake.query.isAdmin === 'true';
+
+  if (!isAdmin) {
+    activeUsersCount++;
+    siteVisits++;
+    saveData();
+    io.emit('active_users_update', { active: activeUsersCount, totalVisits: siteVisits });
+  } else {
+    socket.emit('active_users_update', { active: activeUsersCount, totalVisits: siteVisits });
+  }
+
+  socket.on('disconnect', () => {
+    if (!isAdmin && activeUsersCount > 0) {
+      activeUsersCount--;
+      io.emit('active_users_update', { active: activeUsersCount, totalVisits: siteVisits });
+    }
+  });
+});
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage });
-
-let users = [];
-let orders = [];
-
-// Daily Traffic Tracker (Keyed by YYYY-MM-DD)
-let trafficLog = {}; 
-
-function getTodayKey() {
-  return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-}
-
-// Track visits per day
-app.post('/api/track-visit', (req, res) => {
-  const today = getTodayKey();
-  trafficLog[today] = (trafficLog[today] || 0) + 1;
-  res.json({ success: true, todayVisits: trafficLog[today] });
-});
 
 // Authentication Endpoints
 app.post('/api/auth/register', (req, res) => {
@@ -59,6 +97,7 @@ app.post('/api/auth/register', (req, res) => {
 
   const newUser = { id: Date.now(), name, email, password };
   users.push(newUser);
+  saveData();
   res.json({ success: true, user: { name: newUser.name, email: newUser.email } });
 });
 
@@ -70,14 +109,10 @@ app.post('/api/auth/login', (req, res) => {
   res.json({ success: true, user: { name: user.name, email: user.email } });
 });
 
-// Services Endpoint (With 100% markup added)
+// Services Endpoint
 app.get('/api/services', async (req, res) => {
   try {
-    const params = new URLSearchParams({
-      key: PROVIDER_API_KEY,
-      action: 'services'
-    });
-
+    const params = new URLSearchParams({ key: PROVIDER_API_KEY, action: 'services' });
     const response = await axios.post(PROVIDER_API_URL, params);
     
     if (Array.isArray(response.data)) {
@@ -86,9 +121,7 @@ app.get('/api/services', async (req, res) => {
         const wholesaleRateNGN = wholesaleRateUSD * USD_TO_NGN;
         let retailRateNGN = Math.ceil(wholesaleRateNGN * 2.0);
 
-        if (retailRateNGN < 200) {
-          retailRateNGN = 200;
-        }
+        if (retailRateNGN < 200) retailRateNGN = 200;
 
         return {
           id: s.service,
@@ -102,7 +135,6 @@ app.get('/api/services', async (req, res) => {
       });
       return res.json(markedUpServices);
     }
-
     res.status(500).json({ error: 'Failed to retrieve services.' });
   } catch (error) {
     res.status(500).json({ error: 'Error connecting to provider API.' });
@@ -113,13 +145,7 @@ app.get('/api/services', async (req, res) => {
 app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   try {
     const { customerName, customerEmail, serviceId, serviceName, targetLink, quantity, totalCost } = req.body;
-
-    const formattedTime = new Date().toLocaleString('en-US', {
-      timeZone: 'Africa/Lagos',
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    });
-
+    const formattedTime = new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' });
     const receiptPath = req.file ? `/uploads/${req.file.filename}` : null;
 
     const newOrder = {
@@ -138,22 +164,14 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
     };
 
     orders.unshift(newOrder);
+    saveData();
     res.json({ success: true, message: 'Order submitted!', orderId: newOrder.orderId });
   } catch (error) {
     res.status(500).json({ error: 'Server error creating order.' });
   }
 });
 
-// Get User Specific Orders
-app.get('/api/user/orders', (req, res) => {
-  const { email } = req.query;
-  if (!email) return res.status(400).json({ error: 'Email required' });
-
-  const userOrders = orders.filter(o => o.customerEmail.toLowerCase() === email.toLowerCase());
-  res.json(userOrders);
-});
-
-// Admin Panel Dashboard
+// Admin Control Panel Route
 app.get('/admin', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -164,17 +182,14 @@ app.get('/admin', (req, res) => {
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0b0f19; color: #fff; padding: 20px; }
         h1 { color: #00e676; text-align: center; }
-        .stats-box { background: #161f30; padding: 16px; border-radius: 12px; margin: 20px 0; text-align: center; border: 1px solid #2a3854; }
-        .stats-box h3 { color: #00e676; font-size: 2.2rem; margin: 8px 0; }
-        .history-box { background: #161f30; padding: 16px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #2a3854; }
-        .history-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a3854; color: #cbd5e1; font-size: 0.95rem; }
-        .history-item:last-child { border-bottom: none; }
+        .stats-grid { display: flex; gap: 15px; margin: 20px 0; }
+        .stats-box { flex: 1; background: #161f30; padding: 16px; border-radius: 12px; text-align: center; border: 1px solid #2a3854; }
+        .stats-box h3 { color: #00e676; font-size: 2rem; margin: 8px 0; }
         .login-box { max-width: 360px; margin: 50px auto; background: #161f30; padding: 24px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
         .login-box h2 { color: #00e676; margin-bottom: 16px; text-align: center; }
         label { font-size: 0.85rem; color: #94a3b8; display: block; margin-top: 10px; }
         input { width: 100%; padding: 12px; margin-top: 6px; background: #0b0f19; border: 1px solid #2a3854; color: #fff; border-radius: 6px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; background: #00e676; border: none; font-weight: bold; cursor: pointer; border-radius: 6px; margin-top: 20px; color: #0b0f19; font-size: 1rem; }
-        .btn-logout { background: #ef4444; color: #fff; width: auto; padding: 8px 16px; margin: 0; font-size: 0.85rem; float: right; }
         .order-card { background: #161f30; padding: 16px; margin-bottom: 16px; border-radius: 10px; border-left: 4px solid #00e676; }
         a { color: #00e676; word-break: break-all; }
         .btn-group { display: flex; gap: 10px; margin-top: 12px; }
@@ -189,92 +204,61 @@ app.get('/admin', (req, res) => {
         <input type="text" id="userInput" placeholder="Enter Username" />
         <label>Password</label>
         <input type="password" id="passInput" placeholder="Enter Password" />
-        <button onclick="loginAdmin()">Login</button>
+        <button onclick="loadOrders()">Login</button>
       </div>
 
       <div id="dashboard" style="display:none; max-width: 600px; margin: 0 auto;">
-        <button class="btn-logout" onclick="logoutAdmin()">Logout</button>
-        <h1 style="text-align: left;">Admin Panel</h1>
+        <h1>Admin Control Panel</h1>
         
-        <div class="stats-box">
-          <p style="color: #94a3b8; text-transform: uppercase; font-size: 0.8rem; margin: 0;">Today's Visitors</p>
-          <h3 id="todayCount">0</h3>
-          <p style="font-size: 0.8rem; color: #64748b; margin: 0;">Resets automatically every 24 hours</p>
-        </div>
-
-        <div class="history-box">
-          <h3 style="color: #00e676; margin-top: 0; font-size: 1rem;">Daily Traffic Log</h3>
-          <div id="trafficHistory"></div>
+        <div class="stats-grid">
+          <div class="stats-box">
+            <p style="color: #94a3b8; text-transform: uppercase; font-size: 0.8rem;">Live Active Users</p>
+            <h3 id="liveCount">0</h3>
+            <p style="font-size: 0.8rem; color: #64748b;">Currently on site</p>
+          </div>
+          <div class="stats-box">
+            <p style="color: #94a3b8; text-transform: uppercase; font-size: 0.8rem;">Total Traffic</p>
+            <h3 id="visitCount">0</h3>
+            <p style="font-size: 0.8rem; color: #64748b;">All-time Visits</p>
+          </div>
         </div>
 
         <h2 style="margin-bottom: 15px; font-size: 1.2rem; color: #cbd5e1;">Pending Orders</h2>
         <div id="ordersList"></div>
       </div>
 
+      <script src="/socket.io/socket.io.js"></script>
       <script>
-        let authHeader = localStorage.getItem('adminAuth') || '';
+        let authHeader = '';
+        const adminSocket = io({ query: { isAdmin: 'true' } });
 
-        // Auto login on refresh if session exists
-        document.addEventListener('DOMContentLoaded', () => {
-          if (authHeader) {
-            loadOrders();
-          }
+        adminSocket.on('active_users_update', (data) => {
+          const liveElem = document.getElementById('liveCount');
+          const visitElem = document.getElementById('visitCount');
+          if (liveElem) liveElem.textContent = data.active;
+          if (visitElem) visitElem.textContent = data.totalVisits;
         });
 
-        async function loginAdmin() {
+        async function loadOrders() {
           const user = document.getElementById('userInput').value;
           const pass = document.getElementById('passInput').value;
           authHeader = 'Basic ' + btoa(user + ':' + pass);
-          localStorage.setItem('adminAuth', authHeader);
-          loadOrders();
-        }
 
-        function logoutAdmin() {
-          localStorage.removeItem('adminAuth');
-          authHeader = '';
-          document.getElementById('dashboard').style.display = 'none';
-          document.getElementById('login').style.display = 'block';
-        }
-
-        async function loadOrders() {
           const res = await fetch('/api/admin/orders', {
             headers: { 'Authorization': authHeader }
           });
 
-          if (res.status === 401) {
-            logoutAdmin();
-            return alert('Invalid Username or Password!');
-          }
+          if (res.status === 401) return alert('Invalid Username or Password!');
 
           const data = await res.json();
           document.getElementById('login').style.display = 'none';
           document.getElementById('dashboard').style.display = 'block';
 
-          // Display today's traffic
-          const todayKey = new Date().toISOString().split('T')[0];
-          document.getElementById('todayCount').textContent = data.traffic[todayKey] || 0;
-
-          // Render daily traffic history list
-          const historyContainer = document.getElementById('trafficHistory');
-          const sortedDates = Object.keys(data.traffic).sort().reverse();
-          
-          if (sortedDates.length === 0) {
-            historyContainer.innerHTML = '<p style="color:#64748b; font-size:0.85rem;">No traffic logged yet.</p>';
-          } else {
-            historyContainer.innerHTML = sortedDates.map(date => \`
-              <div class="history-item">
-                <span>\${date === todayKey ? '<strong>Today (' + date + ')</strong>' : date}</span>
-                <span><strong>\${data.traffic[date]}</strong> visitors</span>
-              </div>
-            \`).join('');
-          }
-
-          // Render pending orders
           const pendingOrders = data.orders.filter(o => o.status === 'Pending Verification');
           const container = document.getElementById('ordersList');
 
           if (pendingOrders.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:20px;">No pending orders.</p>';
+            container.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:30px;">No pending orders.</p>';
             return;
           }
 
@@ -301,10 +285,7 @@ app.get('/admin', (req, res) => {
           if (!confirm('Approve order ' + orderId + '?')) return;
           const res = await fetch('/api/admin/approve-order', {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': authHeader
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
             body: JSON.stringify({ orderId })
           });
           const data = await res.json();
@@ -317,13 +298,10 @@ app.get('/admin', (req, res) => {
         }
 
         async function declineOrder(orderId) {
-          if (!confirm('Decline order ' + orderId + '? It will be removed from dashboard.')) return;
+          if (!confirm('Decline order ' + orderId + '?')) return;
           const res = await fetch('/api/admin/decline-order', {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': authHeader
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
             body: JSON.stringify({ orderId })
           });
           const data = await res.json();
@@ -340,25 +318,18 @@ app.get('/admin', (req, res) => {
   `);
 });
 
-// Protected Admin API Route
+// Protected Admin Middleware & API Endpoints
 app.use('/api/admin', (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (!authHeader || !authHeader.startsWith('Basic ')) return res.status(401).json({ error: 'Unauthorized' });
 
   const credentials = Buffer.from(authHeader.split(' ')[1], 'base64').toString('ascii').split(':');
-  if (credentials[0] !== ADMIN_USERNAME || credentials[1] !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (credentials[0] !== ADMIN_USERNAME || credentials[1] !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Unauthorized' });
   next();
 });
 
 app.get('/api/admin/orders', (req, res) => {
-  res.json({
-    traffic: trafficLog,
-    orders: orders
-  });
+  res.json({ visits: siteVisits, orders: orders });
 });
 
 app.post('/api/admin/approve-order', async (req, res) => {
@@ -366,9 +337,7 @@ app.post('/api/admin/approve-order', async (req, res) => {
   const order = orders.find(o => o.orderId === orderId);
 
   if (!order) return res.status(404).json({ error: 'Order not found' });
-  if (order.status !== 'Pending Verification') {
-    return res.status(400).json({ error: 'Order already processed' });
-  }
+  if (order.status !== 'Pending Verification') return res.status(400).json({ error: 'Order already processed' });
 
   try {
     const params = new URLSearchParams({
@@ -384,7 +353,8 @@ app.post('/api/admin/approve-order', async (req, res) => {
     if (response.data && response.data.order) {
       order.status = 'Approved & Sent to Provider';
       order.providerOrderId = response.data.order;
-      res.json({ success: true, message: 'Order approved and sent!', providerOrderId: response.data.order });
+      saveData();
+      res.json({ success: true, message: 'Order approved!', providerOrderId: response.data.order });
     } else {
       order.status = 'API Error';
       res.status(400).json({ error: response.data.error || 'Provider returned an error.' });
@@ -401,7 +371,10 @@ app.post('/api/admin/decline-order', (req, res) => {
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   order.status = 'Declined';
-  res.json({ success: true, message: 'Order declined successfully.' });
+  saveData();
+  res.json({ success: true, message: 'Order declined.' });
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Use server.listen instead of app.listen
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    
