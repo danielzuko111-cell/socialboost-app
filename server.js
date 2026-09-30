@@ -11,8 +11,9 @@ const PORT = process.env.PORT || 3000;
 const PROVIDER_API_URL = 'https://mysocialsboost.com/api/v2';
 const PROVIDER_API_KEY = process.env.PROVIDER_API_KEY || '15c176d4487684b0e64e588704e88d93';
 
-// Secret Admin Passcode
-const ADMIN_PIN = process.env.ADMIN_PIN || '123456';
+// Admin Authentication Credentials
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'danielzuko';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'daniel2004#';
 
 // Exchange rate: 1 USD = 1,650 NGN
 const USD_TO_NGN = 1650; 
@@ -99,7 +100,7 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   }
 });
 
-// Visual Admin Dashboard Route
+// Visual Admin Dashboard Interface
 app.get('/admin', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -108,20 +109,25 @@ app.get('/admin', (req, res) => {
       <title>Admin Dashboard - SocialBoost</title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
-        body { font-family: sans-serif; background: #0b0f19; color: #fff; padding: 20px; }
-        h1 { color: #00e676; }
-        .login-box { max-width: 320px; margin: 40px auto; background: #161f30; padding: 20px; border-radius: 12px; }
-        input { width: 100%; padding: 10px; margin: 10px 0; background: #0b0f19; border: 1px solid #2a3854; color: #fff; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #00e676; border: none; font-weight: bold; cursor: pointer; border-radius: 6px; }
-        .order-card { background: #161f30; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 4px solid #00e676; }
-        a { color: #00e676; }
-        .btn-approve { background: #00e676; color: #000; padding: 8px 16px; width: auto; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; margin-top: 10px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0b0f19; color: #fff; padding: 20px; }
+        h1 { color: #00e676; text-align: center; }
+        .login-box { max-width: 360px; margin: 50px auto; background: #161f30; padding: 24px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .login-box h2 { color: #00e676; margin-bottom: 16px; text-align: center; }
+        label { font-size: 0.85rem; color: #94a3b8; display: block; margin-top: 10px; }
+        input { width: 100%; padding: 12px; margin-top: 6px; background: #0b0f19; border: 1px solid #2a3854; color: #fff; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #00e676; border: none; font-weight: bold; cursor: pointer; border-radius: 6px; margin-top: 20px; color: #0b0f19; font-size: 1rem; }
+        .order-card { background: #161f30; padding: 16px; margin-bottom: 16px; border-radius: 10px; border-left: 4px solid #00e676; }
+        a { color: #00e676; word-break: break-all; }
+        .btn-approve { background: #00e676; color: #0b0f19; padding: 10px 18px; width: auto; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; margin-top: 12px; }
       </style>
     </head>
     <body>
       <div id="login" class="login-box">
         <h2>Admin Login</h2>
-        <input type="password" id="pinInput" placeholder="Enter Admin PIN" />
+        <label>Username</label>
+        <input type="text" id="userInput" placeholder="Enter Username" />
+        <label>Password</label>
+        <input type="password" id="passInput" placeholder="Enter Password" />
         <button onclick="loadOrders()">Login</button>
       </div>
 
@@ -131,12 +137,21 @@ app.get('/admin', (req, res) => {
       </div>
 
       <script>
-        let currentPin = '';
+        let authHeader = '';
 
         async function loadOrders() {
-          currentPin = document.getElementById('pinInput').value;
-          const res = await fetch('/api/admin/orders?pin=' + currentPin);
-          if (res.status === 401) return alert('Invalid Admin PIN!');
+          const user = document.getElementById('userInput').value;
+          const pass = document.getElementById('passInput').value;
+
+          authHeader = 'Basic ' + btoa(user + ':' + pass);
+
+          const res = await fetch('/api/admin/orders', {
+            headers: { 'Authorization': authHeader }
+          });
+
+          if (res.status === 401) {
+            return alert('Invalid Username or Password!');
+          }
 
           const orders = await res.json();
           document.getElementById('login').style.display = 'none';
@@ -144,7 +159,7 @@ app.get('/admin', (req, res) => {
 
           const container = document.getElementById('ordersList');
           if (orders.length === 0) {
-            container.innerHTML = '<p>No orders submitted yet.</p>';
+            container.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:30px;">No pending orders.</p>';
             return;
           }
 
@@ -156,7 +171,7 @@ app.get('/admin', (req, res) => {
               <p><strong>Quantity:</strong> \${o.quantity}</p>
               <p><strong>Amount Paid:</strong> ₦\${o.totalCostNGN}</p>
               <p><strong>Status:</strong> \${o.status}</p>
-              <p><strong>Receipt:</strong> <a href="\${o.receiptUrl}" target="_blank">View Receipt Image</a></p>
+              <p><strong>Receipt:</strong> <a href="\${o.receiptUrl}" target="_blank">View Payment Receipt</a></p>
               \${o.status === 'Pending Verification' ? \`<button class="btn-approve" onclick="approveOrder('\${o.orderId}')">Approve & Send to Provider</button>\` : ''}
             </div>
           \`).join('');
@@ -164,9 +179,12 @@ app.get('/admin', (req, res) => {
 
         async function approveOrder(orderId) {
           if (!confirm('Approve order ' + orderId + '?')) return;
-          const res = await fetch('/api/admin/approve-order?pin=' + currentPin, {
+          const res = await fetch('/api/admin/approve-order', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': authHeader
+            },
             body: JSON.stringify({ orderId })
           });
           const data = await res.json();
@@ -183,11 +201,19 @@ app.get('/admin', (req, res) => {
   `);
 });
 
-// Protected Admin API Endpoints
+// Protected Admin API Endpoints Middleware
 app.use('/api/admin', (req, res, next) => {
-  const providedPin = req.headers['x-admin-pin'] || req.query.pin;
-  if (providedPin !== ADMIN_PIN) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid Admin PIN' });
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return res.status(401).json({ error: 'Unauthorized: Credentials required' });
+  }
+
+  const credentials = Buffer.from(authHeader.split(' ')[1], 'base64').toString('ascii').split(':');
+  const user = credentials[0];
+  const pass = credentials[1];
+
+  if (user !== ADMIN_USERNAME || pass !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid username or password' });
   }
   next();
 });
@@ -228,4 +254,3 @@ app.post('/api/admin/approve-order', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-                 
