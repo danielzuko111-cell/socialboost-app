@@ -102,18 +102,18 @@ app.get('/api/services', async (req, res) => {
   }
 });
 
-// Order Creation Endpoint
+// Order Creation Endpoint (Handles file upload or WhatsApp verification)
 app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   try {
     const { customerName, customerEmail, serviceId, serviceName, targetLink, quantity, totalCost } = req.body;
-
-    if (!req.file) return res.status(400).json({ error: 'Payment receipt photo is required' });
 
     const formattedTime = new Date().toLocaleString('en-US', {
       timeZone: 'Africa/Lagos',
       dateStyle: 'medium',
       timeStyle: 'short'
     });
+
+    const receiptPath = req.file ? `/uploads/${req.file.filename}` : null;
 
     const newOrder = {
       orderId: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
@@ -124,7 +124,8 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
       targetLink,
       quantity: parseInt(quantity),
       totalCostNGN: parseInt(totalCost),
-      receiptUrl: `/uploads/${req.file.filename}`,
+      receiptUrl: receiptPath,
+      verificationType: receiptPath ? 'Direct Upload' : 'WhatsApp Verification',
       status: 'Pending Verification',
       createdAt: formattedTime
     };
@@ -215,12 +216,13 @@ app.get('/admin', (req, res) => {
               <p><strong>Order ID:</strong> \${o.orderId}</p>
               <p><strong>Customer:</strong> \${o.customerName} (\${o.customerEmail})</p>
               <p><strong>Time Placed:</strong> 🕒 \${o.createdAt}</p>
+              <p><strong>Verification Method:</strong> \${o.verificationType}</p>
               <p><strong>Service:</strong> \${o.serviceName} (ID: \${o.serviceId})</p>
               <p><strong>Link:</strong> <a href="\${o.targetLink}" target="_blank">\${o.targetLink}</a></p>
               <p><strong>Quantity:</strong> \${o.quantity}</p>
               <p><strong>Amount Paid:</strong> ₦\${o.totalCostNGN}</p>
               <p><strong>Status:</strong> \${o.status}</p>
-              <p><strong>Receipt:</strong> <a href="\${o.receiptUrl}" target="_blank">View Receipt Photo</a></p>
+              <p><strong>Receipt:</strong> \${o.receiptUrl ? \`<a href="\${o.receiptUrl}" target="_blank">View Receipt Photo</a>\` : 'Sent via WhatsApp'}</p>
               \${o.status === 'Pending Verification' ? \`<button class="btn-approve" onclick="approveOrder('\${o.orderId}')">Approve & Send to Provider</button>\` : ''}
             </div>
           \`).join('');
