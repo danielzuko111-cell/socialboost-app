@@ -11,6 +11,9 @@ const PORT = process.env.PORT || 3000;
 const PROVIDER_API_URL = 'https://mysocialsboost.com/api/v2';
 const PROVIDER_API_KEY = process.env.PROVIDER_API_KEY || '15c176d4487684b0e64e588704e88d93';
 
+// Set your preferred exchange rate (1 USD = 1650 NGN)
+const USD_TO_NGN = 1650;
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
@@ -28,7 +31,7 @@ const upload = multer({ storage });
 
 let orders = [];
 
-// Fetch live services from MySocialsBoost API and apply 50% markup
+// Fetch live services from MySocialsBoost API, convert USD to NGN, and apply 50% markup
 app.get('/api/services', async (req, res) => {
   try {
     const params = new URLSearchParams({
@@ -40,10 +43,13 @@ app.get('/api/services', async (req, res) => {
     
     if (Array.isArray(response.data)) {
       const markedUpServices = response.data.map(s => {
-        const wholesaleRateNGN = parseFloat(s.rate);
+        const wholesaleRateUSD = parseFloat(s.rate); // Provider rate in USD
         
-        // Apply 50% Markup and round up to whole Naira
-        const retailRateNGN = Math.max(1, Math.ceil(wholesaleRateNGN * 1.5));
+        // 1. Convert USD to NGN
+        const wholesaleRateNGN = wholesaleRateUSD * USD_TO_NGN;
+        
+        // 2. Add 50% Markup (Multiply by 1.5)
+        const retailRateNGN = Math.ceil(wholesaleRateNGN * 1.5);
 
         return {
           id: s.service,
@@ -127,3 +133,4 @@ app.post('/api/admin/approve-order', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+                                                 
