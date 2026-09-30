@@ -34,6 +34,13 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 let orders = [];
+let siteVisits = 0; // Traffic counter
+
+// Track site traffic
+app.post('/api/track-visit', (req, res) => {
+  siteVisits++;
+  res.json({ success: true, totalVisits: siteVisits });
+});
 
 // Fetch live services
 app.get('/api/services', async (req, res) => {
@@ -74,15 +81,24 @@ app.get('/api/services', async (req, res) => {
   }
 });
 
-// Customer Route: Submit Order & Payment Receipt
+// Customer Route: Submit Order with User Details & Timestamp
 app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   try {
-    const { serviceId, serviceName, targetLink, quantity, totalCost } = req.body;
+    const { customerName, customerEmail, serviceId, serviceName, targetLink, quantity, totalCost } = req.body;
 
     if (!req.file) return res.status(400).json({ error: 'Payment receipt photo is required' });
 
+    // Format current timestamp in West Africa Time / Local time
+    const formattedTime = new Date().toLocaleString('en-US', {
+      timeZone: 'Africa/Lagos',
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+
     const newOrder = {
       orderId: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
+      customerName: customerName || 'Guest User',
+      customerEmail: customerEmail || 'N/A',
       serviceId,
       serviceName,
       targetLink,
@@ -90,17 +106,17 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
       totalCostNGN: parseInt(totalCost),
       receiptUrl: `/uploads/${req.file.filename}`,
       status: 'Pending Verification',
-      createdAt: new Date().toLocaleString()
+      createdAt: formattedTime
     };
 
     orders.unshift(newOrder);
-    res.json({ success: true, message: 'Order submitted! Verification pending.', orderId: newOrder.orderId });
+    res.json({ success: true, message: 'Order submitted!', orderId: newOrder.orderId });
   } catch (error) {
     res.status(500).json({ error: 'Server error creating order.' });
   }
 });
 
-// Visual Admin Dashboard Interface
+// Admin Dashboard UI
 app.get('/admin', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -111,6 +127,8 @@ app.get('/admin', (req, res) => {
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0b0f19; color: #fff; padding: 20px; }
         h1 { color: #00e676; text-align: center; }
+        .stats-box { background: #161f30; padding: 16px; border-radius: 12px; margin: 20px 0; text-align: center; border: 1px solid #2a3854; }
+        .stats-box h3 { color: #00e676; font-size: 2rem; }
         .login-box { max-width: 360px; margin: 50px auto; background: #161f30; padding: 24px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
         .login-box h2 { color: #00e676; margin-bottom: 16px; text-align: center; }
         label { font-size: 0.85rem; color: #94a3b8; display: block; margin-top: 10px; }
@@ -132,7 +150,15 @@ app.get('/admin', (req, res) => {
       </div>
 
       <div id="dashboard" style="display:none; max-width: 600px; margin: 0 auto;">
-        <h1>Admin Order Dashboard</h1>
+        <h1>Admin Control Panel</h1>
+        
+        <div class="stats-box">
+          <p style="color: #94a3b8; text-transform: uppercase; font-size: 0.8rem;">Total Website Traffic</p>
+          <h3 id="visitCount">0</h3>
+          <p style="font-size: 0.8rem; color: #64748b;">Total Site Visits</p>
+        </div>
+
+        <h2 style="margin-bottom: 15px; font-size: 1.2rem; color: #cbd5e1;">Customer Orders</h2>
         <div id="ordersList"></div>
       </div>
 
@@ -153,25 +179,28 @@ app.get('/admin', (req, res) => {
             return alert('Invalid Username or Password!');
           }
 
-          const orders = await res.json();
+          const data = await res.json();
           document.getElementById('login').style.display = 'none';
           document.getElementById('dashboard').style.display = 'block';
+          document.getElementById('visitCount').textContent = data.visits;
 
           const container = document.getElementById('ordersList');
-          if (orders.length === 0) {
+          if (data.orders.length === 0) {
             container.innerHTML = '<p style="text-align:center; color:#94a3b8; margin-top:30px;">No pending orders.</p>';
             return;
           }
 
-          container.innerHTML = orders.map(o => \`
+          container.innerHTML = data.orders.map(o => \`
             <div class="order-card">
               <p><strong>Order ID:</strong> \${o.orderId}</p>
+              <p><strong>Customer:</strong> \${o.customerName} (\${o.customerEmail})</p>
+              <p><strong>Time Placed:</strong> 🕒 \${o.createdAt}</p>
               <p><strong>Service:</strong> \${o.serviceName} (ID: \${o.serviceId})</p>
               <p><strong>Link:</strong> <a href="\${o.targetLink}" target="_blank">\${o.targetLink}</a></p>
               <p><strong>Quantity:</strong> \${o.quantity}</p>
               <p><strong>Amount Paid:</strong> ₦\${o.totalCostNGN}</p>
               <p><strong>Status:</strong> \${o.status}</p>
-              <p><strong>Receipt:</strong> <a href="\${o.receiptUrl}" target="_blank">View Payment Receipt</a></p>
+              <p><strong>Receipt:</strong> <a href="\${o.receiptUrl}" target="_blank">View Receipt Photo</a></p>
               \${o.status === 'Pending Verification' ? \`<button class="btn-approve" onclick="approveOrder('\${o.orderId}')">Approve & Send to Provider</button>\` : ''}
             </div>
           \`).join('');
@@ -201,24 +230,26 @@ app.get('/admin', (req, res) => {
   `);
 });
 
-// Protected Admin API Endpoints Middleware
+// Protected Admin API Route
 app.use('/api/admin', (req, res, next) => {
   const authHeader = req.headers['authorization'];
   if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return res.status(401).json({ error: 'Unauthorized: Credentials required' });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const credentials = Buffer.from(authHeader.split(' ')[1], 'base64').toString('ascii').split(':');
-  const user = credentials[0];
-  const pass = credentials[1];
-
-  if (user !== ADMIN_USERNAME || pass !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid username or password' });
+  if (credentials[0] !== ADMIN_USERNAME || credentials[1] !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
   next();
 });
 
-app.get('/api/admin/orders', (req, res) => res.json(orders));
+app.get('/api/admin/orders', (req, res) => {
+  res.json({
+    visits: siteVisits,
+    orders: orders
+  });
+});
 
 app.post('/api/admin/approve-order', async (req, res) => {
   const { orderId } = req.body;
@@ -254,3 +285,4 @@ app.post('/api/admin/approve-order', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+      
