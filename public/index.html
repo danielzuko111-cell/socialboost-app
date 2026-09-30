@@ -18,13 +18,14 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; padding-bottom: 40px; }
 
-    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; sticky: top; top: 0; z-index: 100; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
     header h1 { font-size: 1.3rem; color: var(--accent); font-weight: 800; }
     .user-badge { font-size: 0.85rem; color: var(--text-sub); }
 
     .container { max-width: 500px; margin: 0 auto; padding: 20px 16px; }
 
-    .card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    /* Hide cards initially to prevent refresh flash/glitch */
+    .card { background: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: none; }
     .card h2 { font-size: 1.1rem; color: var(--accent); margin-bottom: 12px; }
 
     .form-group { margin-bottom: 14px; }
@@ -46,6 +47,10 @@
 
     .bank-details { background: #0f172a; padding: 12px; border-radius: 8px; border: 1px dashed var(--border); margin-bottom: 14px; font-size: 0.85rem; color: var(--text-sub); line-height: 1.5; }
     .bank-details strong { color: var(--text-main); }
+
+    .option-grid { display: flex; gap: 10px; margin-bottom: 14px; }
+    .option-btn { flex: 1; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-sub); border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.85rem; }
+    .option-btn.selected { border-color: var(--accent); color: var(--accent); font-weight: bold; background: rgba(0,230,118,0.08); }
   </style>
 </head>
 <body>
@@ -94,61 +99,62 @@
     </div>
 
     <!-- MAIN APPS CARD -->
-    <div id="appCard" style="display:none;">
+    <div id="appCard" class="card">
+      <h2>Place Order</h2>
       
-      <!-- ORDER FORM -->
-      <div class="card">
-        <h2>Place Order</h2>
-        
-        <div class="form-group">
-          <label>Category</label>
-          <select id="categorySelect" onchange="filterServices()"></select>
-        </div>
-
-        <div class="form-group">
-          <label>Service</label>
-          <select id="serviceSelect" onchange="calculatePrice()"></select>
-        </div>
-
-        <div class="form-group">
-          <label>Target Link</label>
-          <input type="url" id="targetLink" placeholder="https://instagram.com/p/..." />
-        </div>
-
-        <div class="form-group">
-          <label>Quantity</label>
-          <input type="number" id="quantityInput" placeholder="Min: 100" oninput="calculatePrice()" />
-        </div>
-
-        <div class="price-box">
-          <p>Total Charge</p>
-          <h3 id="totalCostDisplay">₦0</h3>
-        </div>
-
-        <div class="bank-details">
-          <p><strong>Bank Transfer Payment</strong></p>
-          <p>Bank: OPay Bank</p>
-          <p>Account No: <strong>9058382070</strong></p>
-          <p>Account Name: Daniel Olabisi</p>
-        </div>
-
-        <div class="form-group">
-          <label>Upload Payment Receipt (Optional)</label>
-          <input type="file" id="receiptInput" accept="image/*" />
-        </div>
-
-        <button class="btn" onclick="submitOrder()">Submit Order</button>
-        <button class="btn btn-secondary" onclick="handleLogout()">Sign Out</button>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="categorySelect" onchange="filterServices()"></select>
       </div>
 
-      <!-- MY ORDERS -->
-      <div class="card">
-        <h2>My Order History</h2>
-        <div id="myOrdersList">
-          <p style="color: var(--text-sub); font-size: 0.85rem;">Loading orders...</p>
-        </div>
+      <div class="form-group">
+        <label>Service</label>
+        <select id="serviceSelect" onchange="calculatePrice()"></select>
       </div>
 
+      <div class="form-group">
+        <label>Target Link</label>
+        <input type="url" id="targetLink" placeholder="https://instagram.com/p/..." />
+      </div>
+
+      <div class="form-group">
+        <label>Quantity</label>
+        <input type="number" id="quantityInput" placeholder="Min: 100" oninput="calculatePrice()" />
+      </div>
+
+      <div class="price-box">
+        <p>Total Charge</p>
+        <h3 id="totalCostDisplay">₦0</h3>
+      </div>
+
+      <div class="bank-details">
+        <p><strong>Bank Transfer Details</strong></p>
+        <p>Bank: OPay</p>
+        <p>Account Number: <strong>9058382070</strong></p>
+        <p>Account Name: Daniel Olabisi</p>
+      </div>
+
+      <label>Payment Verification Option</label>
+      <div class="option-grid">
+        <div id="optUpload" class="option-btn selected" onclick="setVerificationOption('upload')">Upload Proof</div>
+        <div id="optWhatsapp" class="option-btn" onclick="setVerificationOption('whatsapp')">Message Admin</div>
+      </div>
+
+      <div id="uploadContainer" class="form-group">
+        <label>Upload Payment Receipt (Required)</label>
+        <input type="file" id="receiptInput" accept="image/*" />
+      </div>
+
+      <button class="btn" onclick="submitOrder()">Submit Order & Verify</button>
+      <button class="btn btn-secondary" onclick="handleLogout()">Sign Out</button>
+    </div>
+
+    <!-- MY ORDERS -->
+    <div id="ordersCard" class="card">
+      <h2>My Orders</h2>
+      <div id="myOrdersList">
+        <p style="color: var(--text-sub); font-size: 0.85rem;">Loading orders...</p>
+      </div>
     </div>
 
   </div>
@@ -158,18 +164,51 @@
     const socket = io();
     let allServices = [];
     let currentUser = null;
+    let selectedVerification = 'upload';
 
-    // Check login state on load
+    // Client-side backup sync against Render resets
+    async function syncBackupWithServer() {
+      const backupUsers = JSON.parse(localStorage.getItem('backup_users') || '[]');
+      const backupOrders = JSON.parse(localStorage.getItem('backup_orders') || '[]');
+      if (backupUsers.length > 0 || backupOrders.length > 0) {
+        try {
+          await fetch('/api/sync-backup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ backupUsers, backupOrders })
+          });
+        } catch (e) {}
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const saved = localStorage.getItem('currentUser');
       if (saved) {
         try {
           currentUser = JSON.parse(saved);
           showApp();
-        } catch(e) {}
+        } catch(e) {
+          showAuth();
+        }
+      } else {
+        showAuth();
       }
+      syncBackupWithServer();
       loadServices();
     });
+
+    function setVerificationOption(opt) {
+      selectedVerification = opt;
+      if (opt === 'upload') {
+        document.getElementById('optUpload').classList.add('selected');
+        document.getElementById('optWhatsapp').classList.remove('selected');
+        document.getElementById('uploadContainer').style.display = 'block';
+      } else {
+        document.getElementById('optWhatsapp').classList.add('selected');
+        document.getElementById('optUpload').classList.remove('selected');
+        document.getElementById('uploadContainer').style.display = 'none';
+      }
+    }
 
     function switchAuthTab(type) {
       if (type === 'login') {
@@ -183,6 +222,21 @@
         document.getElementById('tabRegBtn').classList.add('active');
         document.getElementById('tabLoginBtn').classList.remove('active');
       }
+    }
+
+    function showAuth() {
+      document.getElementById('authCard').style.display = 'block';
+      document.getElementById('appCard').style.display = 'none';
+      document.getElementById('ordersCard').style.display = 'none';
+      document.getElementById('userInfo').textContent = 'Not Logged In';
+    }
+
+    function showApp() {
+      document.getElementById('authCard').style.display = 'none';
+      document.getElementById('appCard').style.display = 'block';
+      document.getElementById('ordersCard').style.display = 'block';
+      document.getElementById('userInfo').textContent = `👤 ${currentUser.name}`;
+      loadUserOrders();
     }
 
     async function handleLogin() {
@@ -201,6 +255,14 @@
       if (data.success) {
         currentUser = data.user;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // Save user to local backup array
+        let backupUsers = JSON.parse(localStorage.getItem('backup_users') || '[]');
+        if (!backupUsers.some(u => u.email === currentUser.email)) {
+          backupUsers.push({ name: currentUser.name, email: currentUser.email, password });
+          localStorage.setItem('backup_users', JSON.stringify(backupUsers));
+        }
+
         showApp();
       } else {
         alert(data.error || 'Login failed');
@@ -224,6 +286,11 @@
       if (data.success) {
         currentUser = data.user;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        let backupUsers = JSON.parse(localStorage.getItem('backup_users') || '[]');
+        backupUsers.push({ name, email, password });
+        localStorage.setItem('backup_users', JSON.stringify(backupUsers));
+
         showApp();
       } else {
         alert(data.error || 'Registration failed');
@@ -233,16 +300,7 @@
     function handleLogout() {
       localStorage.removeItem('currentUser');
       currentUser = null;
-      document.getElementById('authCard').style.display = 'block';
-      document.getElementById('appCard').style.display = 'none';
-      document.getElementById('userInfo').textContent = 'Not Logged In';
-    }
-
-    function showApp() {
-      document.getElementById('authCard').style.display = 'none';
-      document.getElementById('appCard').style.display = 'block';
-      document.getElementById('userInfo').textContent = `👤 ${currentUser.name}`;
-      loadUserOrders();
+      showAuth();
     }
 
     async function loadServices() {
@@ -294,6 +352,10 @@
 
       if (!serviceId || !targetLink || !quantity) return alert('Please fill in all order fields!');
 
+      if (selectedVerification === 'upload' && !receiptFile) {
+        return alert('Please upload your payment receipt photo before submitting!');
+      }
+
       const service = allServices.find(s => s.id == serviceId);
       const totalCost = Math.ceil((quantity / 1000) * service.retail_rate_per_1000);
 
@@ -305,6 +367,7 @@
       formData.append('targetLink', targetLink);
       formData.append('quantity', quantity);
       formData.append('totalCost', totalCost);
+      formData.append('verificationOption', selectedVerification);
       if (receiptFile) formData.append('receipt', receiptFile);
 
       const res = await fetch('/api/orders/create', {
@@ -314,7 +377,17 @@
 
       const data = await res.json();
       if (data.success) {
-        alert('Order submitted successfully!');
+        let backupOrders = JSON.parse(localStorage.getItem('backup_orders') || '[]');
+        backupOrders.unshift(data.order);
+        localStorage.setItem('backup_orders', JSON.stringify(backupOrders));
+
+        if (selectedVerification === 'whatsapp') {
+          const msg = encodeURIComponent(`Hello Admin, I just placed an order on SocialBoost!\n\nOrder ID: ${data.order.orderId}\nService: ${service.name}\nQuantity: ${quantity}\nAmount: ₦${totalCost}\nLink: ${targetLink}`);
+          window.open(`https://wa.me/2349058382070?text=${msg}`, '_blank');
+        } else {
+          alert('Order submitted successfully!');
+        }
+
         document.getElementById('targetLink').value = '';
         document.getElementById('quantityInput').value = '';
         document.getElementById('receiptInput').value = '';
@@ -331,7 +404,12 @@
       const ordersContainer = document.getElementById('myOrdersList');
       try {
         const res = await fetch(`/api/orders/user?email=${encodeURIComponent(currentUser.email)}`);
-        const data = await res.json();
+        let data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          const backupOrders = JSON.parse(localStorage.getItem('backup_orders') || '[]');
+          data = backupOrders.filter(o => o.customerEmail && o.customerEmail.toLowerCase() === currentUser.email.toLowerCase());
+        }
 
         if (!Array.isArray(data) || data.length === 0) {
           ordersContainer.innerHTML = '<p style="color: var(--text-sub); font-size: 0.85rem;">No orders placed yet.</p>';
