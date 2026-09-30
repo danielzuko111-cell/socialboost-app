@@ -16,14 +16,12 @@ const PORT = process.env.PORT || 3000;
 const PROVIDER_API_URL = 'https://mysocialsboost.com/api/v2';
 const PROVIDER_API_KEY = process.env.PROVIDER_API_KEY || '15c176d4487684b0e64e588704e88d93';
 
-// Admin Credentials
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'danielzuko';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'daniel2004#';
 
 const USD_TO_NGN = 1650; 
 const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
@@ -33,7 +31,6 @@ if (!fs.existsSync('./uploads')) {
   fs.mkdirSync('./uploads');
 }
 
-// Data Persistence (File Storage)
 function loadData() {
   if (fs.existsSync(DATA_FILE)) {
     try {
@@ -60,7 +57,6 @@ let users = initialData.users || [];
 let orders = initialData.orders || [];
 let activeUsersCount = 0;
 
-// Socket.IO Real-time Connection & Presence Tracking
 io.on('connection', (socket) => {
   const isAdmin = socket.handshake.query.isAdmin === 'true';
 
@@ -86,6 +82,27 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage });
+
+// Sync Client Data Backup (Prevents Render spin-down wipe)
+app.post('/api/sync-backup', (req, res) => {
+  const { backupUsers, backupOrders } = req.body;
+  if (Array.isArray(backupUsers)) {
+    backupUsers.forEach(bu => {
+      if (!users.some(u => u.email.toLowerCase() === bu.email.toLowerCase())) {
+        users.push(bu);
+      }
+    });
+  }
+  if (Array.isArray(backupOrders)) {
+    backupOrders.forEach(bo => {
+      if (!orders.some(o => o.orderId === bo.orderId)) {
+        orders.unshift(bo);
+      }
+    });
+  }
+  saveData();
+  res.json({ success: true });
+});
 
 // Authentication Endpoints
 app.post('/api/auth/register', (req, res) => {
@@ -144,7 +161,12 @@ app.get('/api/services', async (req, res) => {
 // Order Creation Endpoint
 app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
   try {
-    const { customerName, customerEmail, serviceId, serviceName, targetLink, quantity, totalCost } = req.body;
+    const { customerName, customerEmail, serviceId, serviceName, targetLink, quantity, totalCost, verificationOption } = req.body;
+    
+    if (verificationOption === 'upload' && !req.file) {
+      return res.status(400).json({ error: 'Please upload payment receipt.' });
+    }
+
     const formattedTime = new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' });
     const receiptPath = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -158,20 +180,19 @@ app.post('/api/orders/create', upload.single('receipt'), (req, res) => {
       quantity: parseInt(quantity),
       totalCostNGN: parseInt(totalCost),
       receiptUrl: receiptPath,
-      verificationType: receiptPath ? 'Direct Upload' : 'WhatsApp Verification',
+      verificationType: verificationOption === 'whatsapp' ? 'WhatsApp Verification' : 'Direct Upload',
       status: 'Pending Verification',
       createdAt: formattedTime
     };
 
     orders.unshift(newOrder);
     saveData();
-    res.json({ success: true, message: 'Order submitted!', orderId: newOrder.orderId });
+    res.json({ success: true, message: 'Order submitted!', order: newOrder });
   } catch (error) {
     res.status(500).json({ error: 'Server error creating order.' });
   }
 });
 
-// Customer Order History Endpoints (Supports both query parameter & route patterns)
 app.get(['/api/orders', '/api/orders/user', '/api/user/orders'], (req, res) => {
   const email = (req.query.email || req.query.customerEmail || '').toLowerCase();
   
@@ -183,7 +204,7 @@ app.get(['/api/orders', '/api/orders/user', '/api/user/orders'], (req, res) => {
   res.json(orders);
 });
 
-// Admin Control Panel Route (With Automatic Session Retention on Refresh)
+// Admin Control Panel
 app.get('/admin', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -344,7 +365,6 @@ app.get('/admin', (req, res) => {
   `);
 });
 
-// Protected Admin Middleware & API Endpoints
 app.use('/api/admin', (req, res, next) => {
   const authHeader = req.headers['authorization'];
   if (!authHeader || !authHeader.startsWith('Basic ')) return res.status(401).json({ error: 'Unauthorized' });
@@ -402,4 +422,4 @@ app.post('/api/admin/decline-order', (req, res) => {
 });
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    
+      
